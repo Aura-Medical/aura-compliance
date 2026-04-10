@@ -8,7 +8,7 @@
 
 **Produto:** Aura Medical iOS Application & Aura+ Backend
 
-**Norma:** LGPD (Lei nº 13.709/2018), Arts. 46–49 — Segurança e Boas Práticas
+**Normas:** LGPD (Lei nº 13.709/2018), Arts. 46–49 — Segurança e Boas Práticas; Resolução CFM 2.454/2026 Arts. 6°–7°, 16°–17°
 
 ---
 
@@ -126,7 +126,48 @@ O Encarregado (DPO) deve preparar comunicação contendo:
 | Email DPO | Comunicação formal ANPD/titulares | Até 72h |
 | GitHub Issues (privado) | Rastreamento técnico do fix | Até 24h (contenção) |
 
-## 7. Testes e Simulações
+## 7. Comunicação de Falhas de IA ao CRM/CFM (CFM 2.454/2026 Art. 7°, §2)
+
+### 7.1 Obrigação Legal
+
+O Art. 7°, §2 da Resolução CFM 2.454/2026 determina:
+
+> *"É dever do médico comunicar às instâncias competentes eventuais falhas, riscos relevantes ou usos inadequados de modelos, sistemas e aplicações de IA que possam comprometer a segurança do paciente ou a qualidade da assistência."*
+
+### 7.2 Escopo — Eventos Reportáveis ao CRM
+
+Além dos incidentes de vazamento de dados (Seção 5), os seguintes eventos relacionados à IA devem ser comunicados ao CRM:
+
+| **Evento** | **Exemplo** | **Critério de Reporte** |
+|---|---|---|
+| Falha do Safety Gate | `isCrisisInput` não detecta expressão suicida conhecida. | Sempre — qualquer falha do Safety Gate é reportável. |
+| Recomendação clinicamente perigosa | LLM sugere interação medicamentosa contraindicada. | Quando a recomendação poderia causar dano se seguida. |
+| Viés discriminatório crítico | IA fornece orientações qualitativamente inferiores para grupo protegido. | Quando classificado como Crítico ou Inaceitável (BIAS_MONITORING.md §5.1). |
+| Indisponibilidade prolongada do Safety Gate | Failover não funciona; chat opera sem proteção de crise. | Qualquer indisponibilidade > 1 hora. |
+
+### 7.3 Procedimento de Comunicação
+
+| **Etapa** | **Ação** | **Responsável** | **Prazo** |
+|---|---|---|---|
+| 1 | Identificação e documentação da falha de IA. | Engenharia + RT | Imediato |
+| 2 | Avaliação de impacto clínico pela Comissão de IA. | Comissão de IA (AI_GOVERNANCE.md) | 24 horas |
+| 3 | Decisão sobre necessidade de comunicação ao CRM. | Coordenador Médico (RT) | 24 horas |
+| 4 | Preparação de relatório formal ao CRM. | RT + DPO | 72 horas |
+| 5 | Envio da comunicação ao CRM da jurisdição. | RT | 72 horas |
+| 6 | Acompanhamento e resposta a solicitações do CRM. | RT + Gerência Executiva | Contínuo |
+
+### 7.4 Conteúdo da Comunicação ao CRM
+
+A comunicação formal deve conter:
+
+1. Identificação do sistema de IA (Aura+, modelo Claude, versão snapshot).
+2. Descrição da falha ou risco identificado.
+3. Data e circunstância da ocorrência.
+4. Avaliação do impacto clínico (real ou potencial).
+5. Medidas corretivas adotadas ou em andamento.
+6. Classificação de risco atualizada (RISK_CLASSIFICATION.md).
+
+## 8. Testes e Simulações
 
 - **Frequência:** Simulação de incidente ("tabletop exercise") a cada 6 meses.
 - **Escopo:** Simular um cenário de severidade Crítica para validar tempos de resposta e fluxo de notificação.

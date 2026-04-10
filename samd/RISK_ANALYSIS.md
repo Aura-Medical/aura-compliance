@@ -2,7 +2,7 @@
 
 **ID do Documento:** RA-001
 
-**Revisão:** 3.0 (v1.0.0 Stable Release)
+**Revisão:** 4.0 (v1.0.0 Stable Release)
 
 **Data:** 2026-04-10
 
@@ -21,6 +21,16 @@
 Esta análise de risco cobre todos os perigos identificados para o sistema Aura Medical (v1.0.0), incluindo avaliações binárias determinísticas, interações com LLM (IA Generativa), integridade de dados, segurança cibernética e proteção de informações de saúde protegidas (PHI). A análise segue a metodologia FMEA com Números de Prioridade de Risco (RPN) calculados como:
 
 **RPN = Severidade × Probabilidade × Detecção**
+
+### 1.1 Base Regulatória da Análise de Risco
+
+Esta análise fundamenta-se nas seguintes normas e diretrizes:
+
+- **ISO 14971:2019** — Aplicação da gestão de risco a dispositivos médicos (metodologia FMEA, critérios de aceitabilidade, análise benefício-risco).
+- **IMDRF/SaMD WG/N12FINAL:2014** — Categorização de risco de SaMD que fundamenta a severidade dos perigos identificados (Categoria II).
+- **IMDRF/SaMD WG/N23FINAL:2015** — Princípios de QMS para SaMD que orientam as medidas de controle e monitoramento de risco.
+- **RDC 657/2022 Art. 8°** — Exige análise de risco proporcional à classificação do SaMD.
+- **CFM 2.454/2026 Arts. 12–13 e Anexo II** — Classificação de risco de IA e obrigações de monitoramento correspondentes (vide `lgpd_cfm/RISK_CLASSIFICATION.md`).
 
 ---
 
@@ -91,6 +101,7 @@ Esta análise de risco cobre todos os perigos identificados para o sistema Aura 
 | **Mitigação** | (1) **Guardrails do System Prompt:** `system-prompt.ts` proíbe explícita e estritamente diagnosticar ou prescrever. (2) **Âncoras Estáticas:** Protocolos clínicos NÃO são gerados pela IA; são buscados de um `PROTOCOLS_CATALOG` codificado com IDs específicos. (3) **Disclaimer Obrigatório:** Disclaimer-mãe injetado automaticamente em cada sessão de chat. |
 | **Risco Residual** | Baixo. A restrição da IA a emitir IDs de `protocolCard` pré-definidos elimina o risco de protocolos clínicos alucinados. |
 | **Rastreabilidade** | REQ-04, REQ-33, REQ-36, REQ-37, REQ-38 |
+| **Referência CFM** | CFM 2.454/2026 Art. 5°, §2 (vedação de delegação de diagnóstico à IA); Art. 15, par. único (soluções de IA não são soberanas). |
 
 ### HAZ-03: Falha na Detecção de Crise Aguda (Falso Negativo)
 
@@ -107,6 +118,7 @@ Esta análise de risco cobre todos os perigos identificados para o sistema Aura 
 | **Mitigação** | (1) **Gate de Regex Determinístico:** `isCrisisInput` bypassa o LLM inteiramente ao detectar padrões, forçando um bloco de `escalation` com CVV 188 / SAMU 192. (2) **Flag de Segurança do Snapshot:** Se o item 9 do PHQ-9 (ideação) for >= 1, `has_active_safety_alert` é definido como verdadeiro por 90 dias, injetando uma restrição estrita de emergência diretamente no system prompt do LLM para TODOS os turnos subsequentes. |
 | **Risco Residual** | Aceitável. A combinação de regex pré-LLM e injeção de prompt pós-LLM fornece uma rede de segurança altamente redundante. |
 | **Rastreabilidade** | REQ-04, REQ-34 |
+| **Referência CFM** | CFM 2.454/2026 Art. 7°, §2 (dever de comunicação de falhas e riscos relevantes de IA às instâncias competentes). |
 
 ### HAZ-04: Execução de Protocolo Clínico sem Validação Médica (Bypass do Doctor-in-the-Loop)
 
@@ -123,6 +135,7 @@ Esta análise de risco cobre todos os perigos identificados para o sistema Aura 
 | **Mitigação** | (1) **Hard Gate do Backend:** `checkAuraPlusGate` bloqueia fisicamente o acesso se `user_active_protocols.unlocked_at` for nulo. (2) **Restrição de Prompt:** O LLM é estruturalmente forçado a emitir `locked: true` em todos os JSONs de `<protocolCard>` durante a Fase 1. |
 | **Risco Residual** | Aceitável. Validação multicamada no backend impede que a UI renderize protocolos acionáveis sem aprovação médica. |
 | **Rastreabilidade** | REQ-36, REQ-37 |
+| **Referência CFM** | CFM 2.454/2026 Art. 15, par. único (supervisão humana obrigatória); Art. 4°, I (IA exclusivamente como apoio). |
 
 ### HAZ-05: PHI Exposta a LLM de Terceiros sem Consentimento
 
@@ -139,6 +152,7 @@ Esta análise de risco cobre todos os perigos identificados para o sistema Aura 
 | **Mitigação** | (1) **Gate de BD Explícito:** `hasAuraPlusLlmConsent` verifica a tabela `user_consents` em busca de um grant `aura_plus_llm` auditado e com timestamp (design fail-closed). (2) **Sem Log Bruto:** `ai_audit_log` faz hash tanto do prompt quanto da resposta (SHA-256) para manter uma trilha de auditoria sem armazenar PHI bruta. |
 | **Risco Residual** | Aceitável. O backend impede fisicamente a chamada à API se o registro explícito de consentimento estiver ausente. |
 | **Rastreabilidade** | REQ-03, REQ-19, REQ-35 |
+| **Referência CFM** | CFM 2.454/2026 Art. 6° (proteção de dados sensíveis); Arts. 10°–11° (direitos do paciente e comunicação sobre uso de IA). Vide `lgpd_cfm/CONSENT.md`. |
 
 ### HAZ-06: Dados Biométricos Corrompidos em Trânsito
 
@@ -241,7 +255,7 @@ Esta análise de risco cobre todos os perigos identificados para o sistema Aura 
 | **Campo** | **Valor** |
 |---|---|
 | **ID do Perigo** | HAZ-12 |
-| **Perigo** | Uma interação de IA não é registrada no log de auditoria, comprometendo a rastreabilidade regulatória (CFM 2.314 Art. 5). |
+| **Perigo** | Uma interação de IA não é registrada no log de auditoria, comprometendo a rastreabilidade regulatória (CFM 2.454/2026 Art. 9° e Anexo I, XVIII — Auditabilidade). |
 | **Causa** | Falha no Supabase durante a gravação do log; timeout de rede; erro silencioso no pipeline de logging. |
 | **Efeito** | Impossibilidade de auditar uma decisão de suporte clínico; não-conformidade regulatória. |
 | **Severidade** | 4 |
@@ -251,6 +265,7 @@ Esta análise de risco cobre todos os perigos identificados para o sistema Aura 
 | **Mitigação** | (1) **Log Fail-Soft:** `logAiInteraction` não bloqueia a resposta ao utilizador em caso de falha, mas registra o erro internamente para retry. (2) Hash SHA-256 de prompt e resposta garante integridade sem armazenar PHI bruta (REQ-03). (3) Versão do modelo fixada em snapshot datado (REQ-21). |
 | **Risco Residual** | Baixo. Design fail-soft maximiza a taxa de sucesso de logging sem impactar a experiência do utilizador. |
 | **Rastreabilidade** | REQ-03, REQ-21 |
+| **Referência CFM** | CFM 2.454/2026 Art. 9° (auditoria e monitoramento de IA); Anexo I, XVIII (auditabilidade como requisito). Vide `lgpd_cfm/AI_AUDIT.md`. |
 
 ### HAZ-13: Retenção Indevida de Dados Pessoais Após Revogação
 
@@ -332,6 +347,18 @@ Esta análise de risco cobre todos os perigos identificados para o sistema Aura 
 | **Risco Residual** | Aceitável. Falha na ingestão resulta em domínio sem status (Ghost Mode), não em avaliação incorreta. |
 | **Rastreabilidade** | REQ-15, REQ-28 |
 
+### 3.1 Controles de Risco Críticos (Mitigações FMEA)
+
+Os seguintes controles são designados como **críticos** para a manutenção da classificação SaMD Classe II. Qualquer alteração nestes controles exige aprovação do Responsável Técnico (RT) e reteste completo (`CONFIG_MGMT.md` §4.1, categoria "Crítica"):
+
+| **Controle** | **Implementação** | **Perigos Mitigados** | **Classificação** |
+|---|---|---|---|
+| **Safety Gate** | `safety.ts:isCrisisInput()` — bypass determinístico pré-LLM via regex. Intercepta crise antes da IA. | HAZ-02, HAZ-03 | Crítico |
+| **Doctor-in-the-Loop** | `gate.ts:checkAuraPlusGate()` — bloqueio de protocolos sem validação médica (`unlocked_at IS NULL` → 403). | HAZ-02, HAZ-04 | Crítico |
+| **Trilha de Auditoria Algorítmica** | `audit.ts:logAiInteraction()` — hash SHA-256 de toda interação; versão congelada do LLM. | HAZ-05, HAZ-12 | Crítico |
+
+A integridade destes três controles é condição necessária para manutenção da classificação SaMD Classe II / IMDRF Categoria II. Conforme CFM 2.454/2026 Art. 15, parágrafo único: *"As soluções de IA não são soberanas, sendo obrigatória a supervisão humana."*
+
 ---
 
 ## 4. Matriz Resumo de Risco
@@ -347,11 +374,35 @@ Esta análise de risco cobre todos os perigos identificados para o sistema Aura 
 
 ---
 
-## 5. Análise Benefício-Risco
+## 5. Análise Benefício-Risco (ISO 14971:2019 §7)
 
-A aplicação Aura Medical (v1.0.0) fornece capacidades significativas de monitorização preventiva de saúde e suporte à decisão clínica (CDSS). A implementação de sobreposições de segurança determinísticas (`isCrisisInput`) e bloqueios rígidos de backend (`checkAuraPlusGate`) garante que os benefícios da IA conversacional na educação em saúde superam significativamente os riscos residuais.
+### 5.1 Benefícios Clínicos
 
-O produto **não diagnostica** e **não executa tratamentos de forma autônoma**. O perfil de risco residual é totalmente consistente com as classificações IEC 62304 Classe B e IMDRF Categoria II.
+- Detecção precoce de desregulação metabólica e cardiovascular em indivíduos assintomáticos, através de limiares binários baseados em evidências (ADA 2024, AHA PREVENT).
+- Interceptação de crises agudas (ideação suicida) com escalonamento imediato para emergência humana (CVV 188, SAMU 192).
+- Educação em saúde preventiva baseada em evidências e personalizada (Medicine 3.0).
+- Monitoramento contínuo de 5 domínios de carga alostática (Modelo de Seeman), integrando dados laboratoriais, wearables e instrumentos clínicos validados.
+
+### 5.2 Riscos Residuais
+
+- Todos os 17 perigos identificados possuem RPN ≤ 30, dentro das faixas "Aceitável" (≤ 15) ou "Baixo" (16–39).
+- Nenhum perigo atinge as faixas "Médio" (40–74) ou "Alto" (75–125).
+- Os 3 controles de risco críticos (Safety Gate, Doctor-in-the-Loop, Trilha de Auditoria — §3.1) fornecem defesa em profundidade contra os perigos de maior severidade (HAZ-01 a HAZ-05).
+
+### 5.3 Conclusão
+
+Os benefícios clínicos superam significativamente os riscos residuais. O produto **não diagnostica** e **não executa tratamentos de forma autônoma**. O perfil de risco residual é totalmente consistente com as classificações SaMD Classe II (RDC 657/2022 Art. 7°, II), IEC 62304 Classe B e IMDRF Categoria II (N12).
+
+## 6. Referências Cruzadas
+
+| **Documento** | **Relação** |
+|---|---|
+| `INTENDED_USE.md` (IU-001) | Classificação SaMD Classe II que delimita esta análise |
+| `TRACEABILITY.md` (TM-001) | Matriz REQ → HAZ bidirecional |
+| `VERIFICATION.md` (VV-001) | Casos de teste que verificam as mitigações |
+| `lgpd_cfm/RISK_CLASSIFICATION.md` (RC-001) | Classificação de risco de IA per CFM 2.454/2026 |
+| `lgpd_cfm/AI_GOVERNANCE.md` (GV-001) | Comissão de IA que supervisiona os controles críticos |
+| `lgpd_cfm/AI_AUDIT.md` (AA-001) | Detalhamento da trilha de auditoria algorítmica |
 
 ---
 

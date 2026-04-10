@@ -2,7 +2,7 @@
 
 **ID do Documento:** CM-001
 
-**Revisão:** 3.0 (v1.0.0 Stable Release)
+**Revisão:** 4.0 (v1.0.0 Stable Release)
 
 **Data:** 2026-04-10
 
@@ -15,6 +15,18 @@
 ## 1. Propósito
 
 Este documento define a estratégia de gerenciamento de configuração para o sistema Aura Medical (SaMD), incluindo controle de versão, arquitetura de repositórios, procedimentos de controle de mudança, processos de build e gerenciamento de releases.
+
+### 1.1 Base Regulatória
+
+Este plano de gerenciamento de configuração atende aos seguintes requisitos regulatórios:
+
+- **IEC 62304:2006+AMD1:2015 §5.1.9** — Gerenciamento de configuração de software médico.
+- **RDC 665/2022 (Boas Práticas de Fabricação para Dispositivos Médicos):**
+  - **Capítulo III (Controles de Produção):** O repositório Git é tratado como a "linha de produção" do SaMD; cada commit é um registro de fabricação.
+  - **Capítulo IV (Controle de Projeto):** Exige rastreabilidade de mudanças de design, incluindo aprovações e justificativas documentadas.
+  - **Princípio de Independência de Revisão:** Mudanças em código crítico exigem aprovação por revisor independente do autor (`VERIFICATION.md` §1.2).
+- **IMDRF/SaMD WG/N23FINAL:2015 §5.2** — Requisitos de QMS para gestão de configuração de SaMD, incluindo controle de versão, controle de mudanças e rastreabilidade de releases.
+- **CFM 2.454/2026 Anexo III, item VI** — Gestão do ciclo de vida de IA como produto, incluindo fases definidas de requisitos, desenvolvimento, validação e implantação. Vide `lgpd_cfm/LIFECYCLE_MGMT.md` para detalhamento.
 
 ## 2. Arquitetura de Repositórios
 
@@ -52,7 +64,7 @@ O sistema adota o Versionamento Semântico (SemVer) e regras rígidas de rastrea
 
 ### 3.2 Versão do Modelo de IA (Rastreabilidade Exata)
 
-Para fins de auditoria (CFM 2.314), é proibido o uso de aliases genéricos para o LLM. A versão do modelo deve ser fixada em um snapshot datado no código:
+Para fins de auditoria (CFM 2.454/2026 Anexo I, XVIII — Auditabilidade), é proibido o uso de aliases genéricos para o LLM. A versão do modelo deve ser fixada em um snapshot datado no código:
 
 - **Fonte:** `aura-backend/src/health/aura-plus/anthropic.ts`
 - **Exemplo Atual:** `claude-haiku-4-5-20251001`
@@ -63,12 +75,12 @@ Para fins de auditoria (CFM 2.314), é proibido o uso de aliases genéricos para
 
 Qualquer alteração no código-fonte é classificada e exige aprovações específicas antes do merge para a branch principal (`main`):
 
-| **Categoria** | **Escopo** | **Aprovação Exigida** | **Teste Exigido** |
-|---|---|---|---|
-| **Crítica** | Lógica de `DomainEvaluator.swift`, prompts de IA ou Safety Gates (`safety.ts`). | RT (Médico) + QA Lead | Testes Unitários Completos |
-| **Padrão** | Controles de segurança, sync de dados (SwiftData/Supabase). | 1 Revisor (Dev Sênior) | Testes de Integração |
-| **Menor** | UI/UX, textos, documentação (sem impacto clínico). | 1 Revisor | QA Visual / Manual |
-| **Emergência** | Vulnerabilidade de segurança ou falha crítica em produção. | Revisão Pós-incidente permitida | Testes Mínimos Viáveis |
+| **Categoria** | **Escopo** | **Aprovação Exigida** | **Independência (RDC 665/2022)** | **Teste Exigido** |
+|---|---|---|---|---|
+| **Crítica** | Lógica de `DomainEvaluator.swift`, prompts de IA ou Safety Gates (`safety.ts`). | RT (Médico) + QA Lead | **Obrigatória:** revisor ≠ autor | Testes Unitários Completos |
+| **Padrão** | Controles de segurança, sync de dados (SwiftData/Supabase). | 1 Revisor (Dev Sênior) | Recomendada | Testes de Integração |
+| **Menor** | UI/UX, textos, documentação (sem impacto clínico). | 1 Revisor | Não exigida | QA Visual / Manual |
+| **Emergência** | Vulnerabilidade de segurança ou falha crítica em produção. | Revisão Pós-incidente permitida | **Ratificação obrigatória em 48h** | Testes Mínimos Viáveis |
 
 ### 4.2 Regras para Código Clínico e de Segurança
 
@@ -131,6 +143,29 @@ Todas as mudanças de configuração e execuções do sistema são rastreáveis 
 2. **Pull Requests:** Aprovações formais documentadas no GitHub.
 3. **Logs de IA:** Tabela `ai_audit_log` no Supabase armazenando versões do LLM e hashes criptográficos de cada interação de suporte à decisão.
 4. **Tags de Release:** Marcações no Git garantindo a reprodução exata de qualquer build em produção.
+
+### 8.1 Rastreabilidade Git como Registro de Fabricação (RDC 665/2022)
+
+Conforme RDC 665/2022 Capítulo III, o repositório Git é o equivalente digital do registro de fabricação para SaMD:
+
+| **Princípio BPF** | **Implementação no Git** |
+|---|---|
+| Registro de produção | Cada commit é um registro imutável com autor, data e hash criptográfico. |
+| Rastreabilidade de lote | Tags de release (ex: `v1.0.0`) identificam univocamente cada build de produção. |
+| Controle de mudanças | Pull Requests com aprovações formais documentadas no GitHub. |
+| Independência de revisão | Categoria "Crítica" exige revisor ≠ autor (§4.1). |
+| Reprodutibilidade | Qualquer tag permite checkout e reconstrução exata do build correspondente. |
+| Segregação de ambientes | Branch `main` protegida; feature branches isolam desenvolvimento. |
+
+## 9. Referências Cruzadas
+
+| **Documento** | **Relação** |
+|---|---|
+| `VERIFICATION.md` (VV-001) | Plano de testes executado no pipeline de release (§6) |
+| `TRACEABILITY.md` (TM-001) | Requisitos que este CM protege contra regressão |
+| `lgpd_cfm/LIFECYCLE_MGMT.md` (LC-001) | Ciclo de vida de IA como produto (CFM 2.454/2026 Anexo III, VI) |
+| `lgpd_cfm/AI_AUDIT.md` (AA-001) | Auditabilidade do modelo LLM (§3.2 deste doc → AA-001 §4.4) |
+| `lgpd_cfm/AI_GOVERNANCE.md` (GV-001) | Comissão de IA aprova releases com mudança de modelo |
 
 ---
 

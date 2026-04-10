@@ -2,7 +2,7 @@
 
 **ID do Documento:** TM-001
 
-**Revisão:** 3.0 (v1.0.0 Stable Release)
+**Revisão:** 4.0 (v1.0.0 Stable Release)
 
 **Data:** 2026-04-10
 
@@ -15,6 +15,21 @@
 ## 1. Propósito
 
 Este documento estabelece a rastreabilidade bidirecional entre requisitos de software, especificações de design, implementações no código-fonte, procedimentos de teste e evidências de verificação. Cada requisito é vinculado ao(s) perigo(s) correspondente(s) definidos em `RISK_ANALYSIS.md` (RA-001 Rev 3.0) onde aplicável.
+
+### 1.1 Base Regulatória
+
+A rastreabilidade bidirecional **Requisito → Design → Código → Teste → Perigo** constitui o princípio de rastreabilidade férrea exigido por:
+
+- **IEC 62304:2006+AMD1:2015 §5.1.1** — Planeamento do desenvolvimento de software médico, incluindo rastreabilidade entre requisitos e verificação.
+- **RDC 665/2022 (Boas Práticas de Fabricação para Dispositivos Médicos):**
+  - **Capítulo IV (Controle de Projeto):** Exige que cada requisito de projeto seja vinculado a especificações de design, implementação e verificação.
+  - **Capítulo VI (Rastreabilidade):** Exige rastreabilidade do produto desde a concepção até a distribuição, garantindo que cada unidade de software possa ser reconstituída a qualquer momento.
+- **IMDRF/SaMD WG/N23FINAL:2015 (QMS para SaMD):**
+  - **§5.3:** Requisitos de QMS para desenvolvimento de SaMD incluem rastreabilidade entre requisitos, design, implementação e verificação.
+  - **§6.1:** A rastreabilidade é uma expectativa central do framework de QMS para software médico.
+- **CFM 2.454/2026 Art. 9°** — Auditoria e monitoramento de sistemas de IA na medicina, requerendo rastreabilidade das decisões assistidas por IA em todas as fases do ciclo de vida.
+
+**Princípio:** Nesta matriz, todo REQ liga a um Código, que liga a um Teste, que mitiga um Perigo (HAZ). Esta cadeia não pode ser quebrada sob nenhuma hipótese.
 
 ## 2. Convenções
 
@@ -53,12 +68,12 @@ Este documento estabelece a rastreabilidade bidirecional entre requisitos de sof
 | **Vínculo de Perigo** | HAZ-01, HAZ-06 |
 | **Status** | Implementado |
 
-### REQ-03: Trilha de Auditoria de IA para SaMD (CFM 2.314)
+### REQ-03: Trilha de Auditoria de IA para SaMD (CFM 2.454/2026)
 
 | **Campo** | **Valor** |
 |---|---|
 | **ID do Requisito** | REQ-03 |
-| **Descrição** | Toda computação de IA (chat ou opener) deve ser registrada para auditabilidade regulatória (CFM 2.314 Art. 5). O log deve incluir ID do utilizador, ID da sessão, versão do modelo e hashes SHA-256 do prompt e da resposta exatos (compatível com LGPD). |
+| **Descrição** | Toda computação de IA (chat ou opener) deve ser registrada para auditabilidade regulatória (CFM 2.454/2026 Art. 9° e Anexo I, XVIII — Auditabilidade). O log deve incluir ID do utilizador, ID da sessão, versão do modelo e hashes SHA-256 do prompt e da resposta exatos (compatível com LGPD). |
 | **Design** | `logAiInteraction` insere registros em `ai_audit_log` usando abordagem fail-soft para evitar bloqueio da resposta ao utilizador. Prompts reais são hashados com `crypto.createHash('sha256')`. |
 | **Código-Fonte** | `aura-backend/src/health/aura-plus/audit.ts`, `aura-backend/src/health/aura-plus/chat.ts` |
 | **Teste** | Teste de integração: verificar row criada após interação com LLM; verificar não-bloqueio em timeout do Supabase. |
@@ -215,10 +230,10 @@ Este documento estabelece a rastreabilidade bidirecional entre requisitos de sof
 |---|---|
 | **ID do Requisito** | REQ-15 |
 | **Descrição** | Dados provenientes de wearables externos devem ser validados quanto à fonte (bundle identifier) e formato antes de serem utilizados na avaliação clínica. Dados de fontes desconhecidas devem ser descartados. |
-| **Design** | Enum `HealthSource` mapeia bundle identifiers conhecidos (Garmin, Oura, Whoop, Apple Watch) para ícones e tipos de dados específicos. `HealthKitSyncService` valida a origem antes da ingestão. |
+| **Design** | Struct `HealthSource` mapeia bundle identifiers conhecidos (Garmin, Oura, Whoop, Apple Watch) para ícones e tipos de dados específicos. `HealthKitSyncService` valida a origem antes da ingestão. |
 | **Código-Fonte** | `AuraMedical/HealthDataModels.swift`, `AuraMedical/HealthKitSyncService.swift` |
 | **Teste** | Teste com mock de fontes de wearable: injeção de bundle ID desconhecido deve ser ignorada. |
-| **Evidência** | Enum `HealthSource` processando strings de `bid`. |
+| **Evidência** | Struct `HealthSource` processando strings de `bid`. |
 | **Vínculo de Perigo** | HAZ-01, HAZ-17 |
 | **Status** | Implementado |
 
@@ -335,7 +350,7 @@ Este documento estabelece a rastreabilidade bidirecional entre requisitos de sof
 | **Design** | `HealthSource` mapeia bundle identifiers para ícones e tipos de dados específicos. `HealthKitSyncService` sincroniza resumos diários em background. |
 | **Código-Fonte** | `AuraMedical/HealthDataModels.swift`, `HealthKitSyncService.swift` |
 | **Teste** | Teste de injeção de fontes de wearable via mock. |
-| **Evidência** | Enum `HealthSource` processando strings de `bid`. |
+| **Evidência** | Struct `HealthSource` processando strings de `bid`. |
 | **Vínculo de Perigo** | HAZ-11, HAZ-17 |
 | **Status** | Implementado |
 
@@ -538,6 +553,17 @@ Este documento estabelece a rastreabilidade bidirecional entre requisitos de sof
 | REQ-36 | HAZ-02, HAZ-04 |
 | REQ-37 | HAZ-02, HAZ-04 |
 | REQ-38 | HAZ-02 |
+
+## 4. Referências Cruzadas
+
+| **Documento** | **Relação** |
+|---|---|
+| `RISK_ANALYSIS.md` (RA-001) | Perigos HAZ-01 a HAZ-17 referenciados nesta matriz |
+| `VERIFICATION.md` (VV-001) | Casos de teste que verificam cada requisito |
+| `CONFIG_MGMT.md` (CM-001) | Controle de mudanças que protege a integridade dos REQs |
+| `lgpd_cfm/AI_AUDIT.md` (AA-001) | Detalhamento da trilha de auditoria (REQ-03, REQ-21) |
+| `lgpd_cfm/CONSENT.md` (CN-001) | Gate de consentimento (REQ-35) |
+| `lgpd_cfm/LIFECYCLE_MGMT.md` (LC-001) | Ciclo de vida vinculado aos requisitos de IA |
 
 ---
 

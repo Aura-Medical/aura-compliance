@@ -2,7 +2,7 @@
 
 Repositório centralizado de documentação regulatória e compliance da plataforma Aura Medical.
 
-Este dossiê cobre as exigências da **Anvisa (RDC 657/2022 e RDC 665/2022)**, **LGPD (Lei nº 13.709/2018)**, **CFM (Resolução 2.314/2022 sobre IA)** e as normas internacionais **IEC 62304** e **ISO 14971** para Software como Dispositivo Médico (SaMD) de Classe II.
+Este dossiê cobre as exigências da **Anvisa (RDC 657/2022 e RDC 665/2022)**, **LGPD (Lei nº 13.709/2018)**, **CFM (Resolução 2.454/2026 sobre IA)** e as normas internacionais **IEC 62304** e **ISO 14971** para Software como Dispositivo Médico (SaMD) de Classe II.
 
 🏗 Arquitetura do Sistema (v1.0.0)
 ----------------------------------
@@ -12,7 +12,7 @@ A arquitetura da Aura Medical foi simplificada e consolidada em dois repositóri
 | **Repositório**                  | **Papel no Sistema**       | **Componentes Críticos de Compliance**                                                                                                      |
 | --------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`aura-ios`** (Swift)          | Motor Clínico & App do Paciente | `DomainEvaluator.swift` (Lógica Binária Medicine 3.0), Instrumentos Clínicos (PHQ-9, PSQI), Segurança do Dispositivo (Keychain, App Attest). |
-| **`aura-backend`** (TypeScript) | Orquestração Aura+, IA e Dados | `safety.ts` (Gate de Crise), `audit.ts` (Logs CFM 2.314), `gate.ts` (Doctor-in-the-loop), Integração Supabase (RLS).                       |
+| **`aura-backend`** (TypeScript) | Orquestração Aura+, IA e Dados | `safety.ts` (Gate de Crise), `audit.ts` (Logs CFM 2.454/2026), `gate.ts` (Doctor-in-the-loop), Integração Supabase (RLS).                       |
 
 📂 Estrutura do Dossiê
 -----------------------
@@ -27,10 +27,14 @@ samd/                  # Dossiê Técnico SaMD (Anvisa / IEC 62304 / ISO 14971)
   ├── VERIFICATION.md  # Plano de testes, validação clínica e metas de cobertura
   └── CONFIG_MGMT.md   # Controle de versão, releases e fluxo de CI/CD para o iOS e Backend
 
-lgpd_cfm/              # Governança de Dados e Ética em IA (Substitui antiga pasta hipaa/)
-  ├── BREACH_SOP.md    # Procedimento Operacional Padrão para vazamentos (Notificação 72h)
-  ├── AI_AUDIT.md      # Regras de hashing SHA-256 para prompts de IA (CFM Art. 5)
-  └── CONSENT.md       # Gestão de opt-in explícito para processamento de LLM (LGPD Art. 11)
+lgpd_cfm/                    # Governança de Dados e Ética em IA (CFM 2.454/2026 + LGPD)
+  ├── AI_AUDIT.md            # Regras de hashing SHA-256 para prompts de IA (CFM Art. 9°)
+  ├── AI_GOVERNANCE.md       # Comissão de IA e Telemedicina (CFM Art. 14)
+  ├── BIAS_MONITORING.md     # Monitoramento de viés discriminatório (CFM Anexo III)
+  ├── BREACH_SOP.md          # SOP de vazamentos e falhas de IA (Notificação 72h)
+  ├── CONSENT.md             # Gestão de opt-in para processamento por LLM (LGPD Art. 11)
+  ├── LIFECYCLE_MGMT.md      # Ciclo de vida da IA como produto (CFM Anexo III)
+  └── RISK_CLASSIFICATION.md # Classificação de risco de IA (CFM Arts. 12-13)
 
 ```
 

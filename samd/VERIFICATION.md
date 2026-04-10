@@ -2,7 +2,7 @@
 
 **ID do Documento:** VV-001
 
-**Revisão:** 3.0 (v1.0.0 Stable Release)
+**Revisão:** 4.0 (v1.0.0 Stable Release)
 
 **Data:** 2026-04-10
 
@@ -15,6 +15,32 @@
 ## 1. Escopo
 
 Este documento descreve a estratégia de verificação e validação para o sistema Aura Medical (App iOS e Backend Aura+), cobrindo testes unitários, testes do motor clínico binário, testes de segurança e guardrails de Inteligência Artificial. O plano garante que todos os 33 requisitos definidos na Matriz de Rastreabilidade (`TRACEABILITY.md`, TM-001 Rev 3.0) sejam rigorosamente verificados.
+
+### 1.1 Base Regulatória
+
+Este plano de verificação atende aos seguintes requisitos regulatórios:
+
+- **IEC 62304:2006+AMD1:2015 §5.7** — Verificação de software médico.
+- **RDC 665/2022 (Boas Práticas de Fabricação para Dispositivos Médicos):**
+  - **Capítulo IV, Seção III (Verificação e Validação de Projeto):** Exige verificação independente de que o design atende aos requisitos especificados.
+  - **Princípio de Independência de Revisão:** A verificação deve ser conduzida por pessoa(s) independente(s) daquela(s) que realizou(aram) o design.
+- **IMDRF/SaMD WG/N23FINAL:2015 §5.4** — Verificação e validação de SaMD, incluindo testes funcionais, de desempenho e de segurança proporcionais à categoria de risco (Categoria II).
+
+### 1.2 Independência de Revisão (RDC 665/2022)
+
+Conforme RDC 665/2022 e ISO 14971:2019, as seguintes atribuições de independência são definidas para o SGQ da Aura Medical:
+
+| **Artefato** | **Autor / Responsável** | **Revisor Independente** | **Racional** |
+|---|---|---|---|
+| Regras clínicas (`DomainEvaluator`, `InstrumentScoring`) | Dr. Alexandre (RT) | Arthur / Frederico | RT define limiares; engenharia/qualidade revisam implementação. |
+| Safety Gate (`safety.ts`) | Engenharia | Dr. Alexandre (RT) | Engenharia implementa; RT valida adequação clínica dos padrões de crise. |
+| System Prompt (`system-prompt.ts`) | Dr. Alexandre (RT) + Engenharia | Frederico (SGQ) | Conteúdo clínico revisado por garantidor de qualidade. |
+| Trilha de Auditoria (`audit.ts`) | Engenharia | Frederico (SGQ) | QA garante conformidade com CFM 2.454/2026 Art. 9°. |
+| Documentação Regulatória (`samd/`, `lgpd_cfm/`) | Dr. Alexandre (RT) | Frederico (SGQ) | RT é autor; SGQ é garantidor da qualidade documental. |
+
+**Princípio:** Nenhum artefato classificado como "Crítico" (`CONFIG_MGMT.md` §4.1) pode ser aprovado exclusivamente por seu autor. A aprovação requer pelo menos um revisor independente.
+
+**Garantidor do SGQ:** Frederico atua como garantidor do Sistema de Gestão da Qualidade (SGQ), assegurando que todos os processos de verificação e validação cumpram os requisitos regulatórios aplicáveis.
 
 ## 2. Visão Geral da Estratégia de Testes
 
@@ -128,6 +154,16 @@ Este documento descreve a estratégia de verificação e validação para o sist
 2. **Auditoria de Catálogo:** Garantir que o `PROTOCOLS_CATALOG` contém exclusivamente intervenções de baixo risco, com contraindicações documentadas, não configurando diagnóstico de doenças do CID-10/11.
 3. **Stress Test do LLM:** Conduzir sessões de chat reais simulando pacientes complexos para verificar se a IA se recusa a atuar como terapeuta ou prescritora de moléculas.
 
+4. **Revisão de Classificação de Risco (CFM 2.454/2026):** Verificar que a classificação de médio risco do módulo Aura+ (`lgpd_cfm/RISK_CLASSIFICATION.md`) permanece válida face às funcionalidades implementadas.
+5. **Verificação de Independência:** Confirmar que toda mudança em código clínico crítico foi revisada por pessoa independente conforme §1.2 deste documento.
+
+**Critérios de Aceite da Validação Clínica:**
+
+- Catálogo de protocolos contém exclusivamente intervenções de baixo risco com contraindicações documentadas (não configura diagnóstico CID-10/11).
+- Limiares de biomarcadores estão alinhados com diretrizes ADA 2024, AHA PREVENT e literatura Medicine 3.0.
+- Safety Gate intercepta 100% das strings de crise mapeadas sem invocar o LLM.
+- Nenhuma resposta da Aura+ configura diagnóstico, prescrição ou delegação de ato médico (CFM 2.454/2026 Art. 5°, §2).
+
 ## 5. Procedimentos de Execução de Teste
 
 ### 5.1 Rodando Testes do Cliente (Swift)
@@ -166,6 +202,17 @@ npm run test
 3. Cobertura de código do `DomainEvaluator.swift` >= 90%.
 4. Assinatura formal do Responsável Técnico para novos biomarcadores ou protocolos.
 5. Nenhum defeito Crítico ou Alto em aberto.
+
+## 9. Referências Cruzadas
+
+| **Documento** | **Relação** |
+|---|---|
+| `TRACEABILITY.md` (TM-001) | 33 requisitos verificados por este plano |
+| `RISK_ANALYSIS.md` (RA-001) | Perigos que motivam os testes de segurança (§4.3, §4.4) |
+| `CONFIG_MGMT.md` (CM-001) | Pipeline de release que incorpora este plano (§6) |
+| `lgpd_cfm/AI_AUDIT.md` (AA-001) | Requisitos de auditoria que informam AI-05 |
+| `lgpd_cfm/RISK_CLASSIFICATION.md` (RC-001) | Classificação de risco validada no §4.5 |
+| `lgpd_cfm/BIAS_MONITORING.md` (BM-001) | Monitoramento de viés como extensão da validação clínica |
 
 ---
 
