@@ -115,7 +115,7 @@ Esta análise fundamenta-se nas seguintes normas e diretrizes:
 | **Probabilidade** | 2 |
 | **Detecção** | 2 |
 | **RPN** | **20** |
-| **Mitigação** | (1) **Gate de Regex Determinístico:** `isCrisisInput` bypassa o LLM inteiramente ao detectar padrões, forçando um bloco de `escalation` com CVV 188 / SAMU 192. (2) **Flag de Segurança do Snapshot:** Se o item 9 do PHQ-9 (ideação) for >= 1, `has_active_safety_alert` é definido como verdadeiro por 90 dias, injetando uma restrição estrita de emergência diretamente no system prompt do LLM para TODOS os turnos subsequentes. |
+| **Mitigação** | (1) **Gate de Regex Determinístico:** `isCrisisInput` (33 padrões cobrindo linguagem formal, coloquial PT-BR, métodos específicos, expressões indiretas/passivas e variações conjugacionais) bypassa o LLM inteiramente, forçando bloco de `escalation` com CVV 188 / SAMU 192. (2) **Flag de Segurança do Snapshot:** Se o item 9 do PHQ-9 (ideação) for >= 1, `has_active_safety_alert` é definido como verdadeiro por 90 dias, injetando restrição de emergência no system prompt para TODOS os turnos subsequentes. |
 | **Risco Residual** | Aceitável. A combinação de regex pré-LLM e injeção de prompt pós-LLM fornece uma rede de segurança altamente redundante. |
 | **Rastreabilidade** | REQ-04, REQ-34 |
 | **Referência CFM** | CFM 2.454/2026 Art. 7°, §2 (dever de comunicação de falhas e riscos relevantes de IA às instâncias competentes). |
