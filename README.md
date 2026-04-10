@@ -20,12 +20,18 @@ A arquitetura da Aura Medical foi simplificada e consolidada em dois repositóri
 Plaintext
 
 ```
-samd/                  # Dossiê Técnico SaMD (Anvisa / IEC 62304 / ISO 14971)
-  ├── INTENDED_USE.md  # Indicação de uso, exclusões de diagnóstico e regras do CDSS
-  ├── RISK_ANALYSIS.md # Análise de Risco FMEA (Falsos negativos, Alucinação de IA, Vazamentos)
-  ├── TRACEABILITY.md  # Matriz de Rastreabilidade (Requisitos → Código → Riscos)
-  ├── VERIFICATION.md  # Plano de testes, validação clínica e metas de cobertura
-  └── CONFIG_MGMT.md   # Controle de versão, releases e fluxo de CI/CD para o iOS e Backend
+samd/                    # Dossiê Técnico SaMD (Anvisa / IEC 62304 / ISO 14971)
+  ├── RMP.md             # Registro Mestre de Produto — índice mestre do dossiê
+  ├── SDP.md             # Plano de Desenvolvimento de Software (documento-raiz)
+  ├── INTENDED_USE.md    # Indicação de uso, classificação CDSS e regras do sistema
+  ├── RISK_ANALYSIS.md   # Análise de Risco FMEA (17 HAZ, 3 controles críticos)
+  ├── RISK_REPORT.md     # Relatório de Gerenciamento de Riscos (ISO 14971 §9)
+  ├── TRACEABILITY.md    # Matriz de Rastreabilidade (33 REQ → Código → Teste → HAZ)
+  ├── VERIFICATION.md    # Plano de V&V (24 test cases, metas de cobertura)
+  ├── CONFIG_MGMT.md     # Controle de versão, releases e BPF digital
+  ├── SBOM.md            # Software Bill of Materials (dependências de terceiros)
+  ├── IFU.md             # Instruções de Uso ao utilizador (RDC 751/2022)
+  └── DECLARATION.md     # Declaração de Conformidade do Fabricante
 
 lgpd_cfm/                    # Governança de Dados e Ética em IA (CFM 2.454/2026 + LGPD)
   ├── AI_AUDIT.md            # Regras de hashing SHA-256 para prompts de IA (CFM Art. 9°)
