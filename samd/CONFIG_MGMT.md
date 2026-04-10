@@ -1,287 +1,143 @@
-# Configuration Management Plan
+# Plano de Gerenciamento de Configuração
 
-**Document ID:** CM-001
-**Revision:** 1.0
-**Date:** 2026-03-27
-**Product:** Aura Medical iOS Application
-**Standard:** IEC 62304:2006+AMD1:2015 Section 5.1.9 (Software configuration management)
+**ID do Documento:** CM-001
+
+**Revisão:** 3.0 (v1.0.0 Stable Release)
+
+**Data:** 2026-04-10
+
+**Produto:** Aura Medical iOS Application & Backend
+
+**Norma:** IEC 62304:2006+AMD1:2015 Seção 5.1.9 (Gerenciamento de configuração de software)
 
 ---
 
-## 1. Purpose
+## 1. Propósito
 
-This document defines the configuration management strategy for the Aura Medical software system, including version control, the 3-repository synchronization protocol, change control procedures, build processes, and release management.
+Este documento define a estratégia de gerenciamento de configuração para o sistema Aura Medical (SaMD), incluindo controle de versão, arquitetura de repositórios, procedimentos de controle de mudança, processos de build e gerenciamento de releases.
 
-## 2. Repository Architecture
+## 2. Arquitetura de Repositórios
 
-The Aura Medical system spans three repositories that must remain synchronized for SaMD compliance:
+O sistema Aura Medical é composto por dois repositórios principais que formam o produto final:
 
 ```
 aura-wearables/
-  |-- phenomic-engine/     # TypeScript canonical engine (source of truth)
-  |-- aura-backend/        # Hono backend (consumes TS engine)
-  |-- aura-ios/            # Swift iOS app (ports TS engine)
+  |-- aura-ios/            # App Swift iOS (Motor de Avaliação Clínica Binária)
+  |-- aura-backend/        # API Hono/Node (Motor de IA, Gateways e Supabase)
 ```
 
-### 2.1 Repository Roles
+### 2.1 Papéis dos Repositórios
 
-| Repository        | Language   | Role                           | Engine Path                   |
-|-------------------|------------|--------------------------------|-------------------------------|
-| `phenomic-engine` | TypeScript | **Canonical** engine source     | `src/engine.ts`, `src/config.ts` |
-| `aura-backend`    | TypeScript | Backend consumer + cross-validator | Imports from phenomic-engine  |
-| `aura-ios`        | Swift      | iOS port of engine              | `Engine/PhenomicEngine.swift`, `Engine/EngineConfig.swift` |
+| **Repositório** | **Linguagem** | **Papel no Sistema** | **Componente Crítico** |
+|---|---|---|---|
+| `aura-ios` | Swift | Frontend e fonte da verdade da lógica clínica (Medicine 3.0). | `DomainEvaluator.swift`, `InstrumentScoring.swift` |
+| `aura-backend` | TypeScript | Orquestração de IA, segurança e persistência de dados. | `system-prompt.ts`, `safety.ts`, `audit.ts` |
 
-### 2.2 Source of Truth Hierarchy
+## 3. Esquema de Versionamento
 
-1. **Engine algorithm:** `phenomic-engine/` TypeScript implementation is the canonical source.
-2. **Test vectors:** `phenomic-engine/parity-vectors.json` defines expected outputs for canonical inputs.
-3. **Configuration:** `phenomic-engine/src/config.ts` defines all default thresholds, weights, and ranges.
-4. **Swift port:** `aura-ios/Engine/` must match the TypeScript implementation exactly (integer output parity).
+O sistema adota o Versionamento Semântico (SemVer) e regras rígidas de rastreabilidade para o modelo de Inteligência Artificial:
 
-## 3. Version Scheme
+### 3.1 Versão do Software (App e Backend)
 
-### 3.1 Engine Version
+| **Componente** | **Formato** | **Fonte da Verdade** | **Exemplo** |
+|---|---|---|---|
+| **iOS App** | `X.Y.Z` | `project.yml` / Xcode | `1.0.0` |
+| **Backend** | `X.Y.Z` | `package.json` | `1.0.0` |
 
-The engine uses semantic versioning with a platform suffix:
+**Regras de Versão:**
 
-| Platform   | Format          | Current Version  | Example       |
-|------------|-----------------|------------------|---------------|
-| TypeScript | `X.Y.Z`        | `4.2.0`          | `4.2.0`       |
-| Swift      | `X.Y.Z-swift`  | `4.2.0-swift`    | `4.2.0-swift` |
+- **Major (X):** Mudanças arquiteturais ou adição de novos domínios clínicos.
+- **Minor (Y):** Novas features e instrumentos de avaliação (retrocompatíveis).
+- **Patch (Z):** Correções de bugs, ajustes de limiares (thresholds) e copy.
 
-**Version Rules:**
-- **Major (X):** Breaking changes to input/output schema or scoring algorithm fundamentals.
-- **Minor (Y):** New features (e.g., new biomarker support, new domain), backward-compatible.
-- **Patch (Z):** Bug fixes, threshold adjustments, config changes that don't alter behavior for existing inputs.
+### 3.2 Versão do Modelo de IA (Rastreabilidade Exata)
 
-Both platforms **must** share the same `X.Y.Z` base version. The `-swift` suffix distinguishes the port but confirms algorithmic parity.
+Para fins de auditoria (CFM 2.314), é proibido o uso de aliases genéricos para o LLM. A versão do modelo deve ser fixada em um snapshot datado no código:
 
-### 3.2 Application Version
+- **Fonte:** `aura-backend/src/health/aura-plus/anthropic.ts`
+- **Exemplo Atual:** `claude-haiku-4-5-20251001`
 
-| Component   | Versioning    | Current  | Source                              |
-|-------------|---------------|----------|-------------------------------------|
-| iOS App     | SemVer        | 1.0.0    | `project.yml` / Xcode build settings |
-| Backend API | SemVer        | 1.0.0    | `package.json`                       |
-| Engine      | SemVer+suffix | 4.2.0    | `PhenomicEngine.engineVersion`       |
+## 4. Controle de Mudanças (Change Control)
 
-### 3.3 Version Tracking in Code
+### 4.1 Categorias de Mudança
 
-```swift
-// Engine/PhenomicEngine.swift
-struct PhenomicEngine {
-    static let engineVersion = "4.2.0-swift"
-    // ...
-}
-```
+Qualquer alteração no código-fonte é classificada e exige aprovações específicas antes do merge para a branch principal (`main`):
 
-```typescript
-// phenomic-engine/src/engine.ts
-export const ENGINE_VERSION = "4.2.0";
-```
+| **Categoria** | **Escopo** | **Aprovação Exigida** | **Teste Exigido** |
+|---|---|---|---|
+| **Crítica** | Lógica de `DomainEvaluator.swift`, prompts de IA ou Safety Gates (`safety.ts`). | RT (Médico) + QA Lead | Testes Unitários Completos |
+| **Padrão** | Controles de segurança, sync de dados (SwiftData/Supabase). | 1 Revisor (Dev Sênior) | Testes de Integração |
+| **Menor** | UI/UX, textos, documentação (sem impacto clínico). | 1 Revisor | QA Visual / Manual |
+| **Emergência** | Vulnerabilidade de segurança ou falha crítica em produção. | Revisão Pós-incidente permitida | Testes Mínimos Viáveis |
 
-## 4. Three-Repository Sync Protocol
+### 4.2 Regras para Código Clínico e de Segurança
 
-### 4.1 Change Flow (CRITICAL)
+- **Lógica Clínica (`DomainEvaluator.swift`, `InstrumentScoring.swift`):** Qualquer alteração nos limiares de exames ou lógicas de pontuação exige validação clínica formal pelo Responsável Técnico.
+- **Prompt da IA (`system-prompt.ts`):** Alterações nas regras ou anti-padrões da Aura+ devem ser testadas contra regressão de alucinação e revisadas em conjunto.
+- **Segurança (`AuraMedical/Security/`):** É estritamente proibido o uso de comandos `print()` para dados. Todo log deve utilizar `os.Logger` com anotação `privacy: .private` para proteção de PHI.
 
-Any change to engine math, thresholds, weights, or scoring logic **MUST** follow this protocol:
+## 5. Processo de Build
 
-```
-Step 1: Implement in phenomic-engine/ (TypeScript)
-         |
-Step 2: Update/add parity test vectors in parity-vectors.json
-         |
-Step 3: Run vitest -- all vectors must pass
-         |
-Step 4: Port changes to aura-ios/Engine/ (Swift)
-         |
-Step 5: Run XCTest parity tests -- all vectors must pass
-         |
-Step 6: Update engine version in BOTH repos (same X.Y.Z)
-         |
-Step 7: Update aura-backend/ if API contract changes
-         |
-Step 8: Cross-validation integration test
-         |
-Step 9: Merge PRs in all affected repos
-```
+### 5.1 Build iOS (Cliente)
 
-### 4.2 Sync Verification Checklist
+A infraestrutura de build do iOS é gerada dinamicamente para evitar conflitos de projeto:
 
-Before merging any engine change PR, verify:
+| **Passo** | **Comando** | **Descrição** |
+|---|---|---|
+| 1 | `xcodegen generate` | Gera o `AuraMedical.xcodeproj` a partir do `project.yml`. |
+| 2 | `xcodebuild build` | Compila o scheme `AuraMedical` (Debug/Release). |
+| 3 | `xcodebuild test` | Executa a suíte de testes unitários. |
+| 4 | `xcodebuild archive` | Cria o arquivo de release para assinatura. |
 
-- [ ] TypeScript parity tests pass (vitest)
-- [ ] Swift parity tests pass (XCTest)
-- [ ] Engine version bumped in both repos
-- [ ] `parity-vectors.json` updated if behavior changes
-- [ ] Cross-validation delta <= 2 for all test vectors
-- [ ] `EngineConfig.default` updated in both repos if config changes
-- [ ] CHANGELOG.md updated in both repos
-- [ ] PR description references the sync protocol
+- **Identificador:** `med.aura.medical`
+- **Team ID:** RZ9WFC8ZMG (Auramedical Tecnologia)
 
-### 4.3 Config-Only Changes
+### 5.2 Build Backend
 
-Changes to `EngineConfig` that do not alter scoring logic (e.g., adjusting a threshold):
+| **Passo** | **Comando** | **Descrição** |
+|---|---|---|
+| 1 | `npm install` | Instalação de dependências estritas. |
+| 2 | `npm run build` | Compilação do TypeScript (Hono). |
+| 3 | `npm start` | Inicialização do servidor de produção. |
 
-1. Update `phenomic-engine/src/config.ts`.
-2. Update `aura-ios/Engine/EngineConfig.swift` `.default` static property.
-3. Run parity tests on both platforms.
-4. Optionally update remote config in Supabase `engine_config` table.
+## 6. Processo de Release
 
-### 4.4 Drift Detection
+O lançamento de novas versões obedece ao seguinte pipeline para garantir o compliance de SaMD:
 
-The system includes automated drift detection:
+1. **Feature Freeze:** Congelamento da branch de release.
+2. **Version Bump:** Atualização das versões no `project.yml` e `package.json`.
+3. **Test Pass:** Execução e aprovação de 100% dos testes unitários e de integração.
+4. **Aprovação Clínica:** Assinatura do RT caso existam mudanças no avaliador de domínio.
+5. **Git Tag:** Criação de tag imutável no repositório (ex: `v1.0.0`).
+6. **Distribuição Interna:** TestFlight para QA regression (mínimo de 3 dias).
+7. **Submissão:** Envio para aprovação da App Store e deploy de produção do Backend.
 
-- **Runtime:** Every iOS engine computation is cross-validated against the TypeScript engine via `POST /api/engine/validate`. Delta > 2 triggers a warning log.
-- **CI:** Parity test vectors run in both TypeScript (vitest) and Swift (XCTest) CI pipelines.
-- **Manual:** Monthly audit of engine version parity across all three repos.
+## 7. Ferramentas Homologadas
 
-## 5. Change Control
+| **Ferramenta** | **Propósito** | **Ambiente / Versão** |
+|---|---|---|
+| **Xcode / Swift** | IDE e Compilação iOS | 16.x ou superior |
+| **xcodegen** | Geração determinística de projeto iOS | Última versão estável |
+| **Git / GitHub** | Controle de versão e revisão de PRs | Nuvem |
+| **Node.js / npm** | Runtime e gerenciamento do Backend | LTS (v20+) |
+| **Supabase** | BaaS, Banco de Dados, Auth, Logs | Nuvem |
+| **TestFlight** | Distribuição de QA e homologação | Nuvem |
 
-### 5.1 Change Categories
+## 8. Trilha de Auditoria (Audit Trail)
 
-| Category   | Scope                                    | Approval Required     | Testing Required           |
-|------------|------------------------------------------|-----------------------|----------------------------|
-| Critical   | Engine algorithm, scoring logic           | 2 reviewers + QA lead | Full parity + cross-validation |
-| Standard   | Security controls, data pipeline          | 1 reviewer            | Affected test suites        |
-| Minor      | UI, localization, documentation           | 1 reviewer            | Visual QA                   |
-| Config     | Engine thresholds, reference ranges       | 1 reviewer + clinical | Parity tests                |
-| Emergency  | Security vulnerability, data loss         | Post-hoc review OK    | Minimal viable tests        |
+Todas as mudanças de configuração e execuções do sistema são rastreáveis através de:
 
-### 5.2 Engine Directory Change Rules
-
-All files under `Engine/` in `aura-ios` require:
-
-1. **PR review** by at least one developer familiar with the TypeScript engine.
-2. **Parity test results** included in PR description.
-3. **Cross-reference** to corresponding TypeScript PR (if applicable).
-4. **Version bump** if behavior changes (not just refactoring).
-
-### 5.3 Security Directory Change Rules
-
-All files under `AuraMedical/Security/` require:
-
-1. **PR review** by at least one security-aware developer.
-2. **No use of `print()`** -- only `os.Logger` with privacy annotations.
-3. **Security test suite** run post-merge.
-
-## 6. Build Process
-
-### 6.1 iOS Build
-
-| Step | Command                                    | Description                            |
-|------|--------------------------------------------|----------------------------------------|
-| 1    | `xcodegen generate`                        | Generate Xcode project from project.yml |
-| 2    | Xcode Build (Cmd+B)                        | Compile AuraMedical scheme              |
-| 3    | `xcodebuild test ...`                      | Run test suite on device                |
-| 4    | `xcodebuild archive ...`                   | Create release archive                  |
-| 5    | `xcodebuild -exportArchive ...`            | Export IPA for distribution             |
-
-**Build Configuration:**
-- Scheme: `AuraMedical`
-- Bundle ID: `med.aura.medical`
-- Team ID: `RZ9WFC8ZMG` (Auramedical Tecnologia)
-- Secrets: `Debug.xcconfig` / `Release.xcconfig` (gitignored)
-- Project generator: xcodegen (`project.yml`)
-
-### 6.2 TypeScript Engine Build
-
-| Step | Command            | Description                    |
-|------|--------------------|--------------------------------|
-| 1    | `npm install`      | Install dependencies           |
-| 2    | `npm run build`    | TypeScript compilation         |
-| 3    | `npm test`         | Run vitest parity + unit tests |
-| 4    | `npm publish`      | Publish to npm (if standalone) |
-
-### 6.3 Backend Build
-
-| Step | Command            | Description                    |
-|------|--------------------|--------------------------------|
-| 1    | `npm install`      | Install dependencies           |
-| 2    | `npm run build`    | TypeScript compilation         |
-| 3    | `npm test`         | Run vitest tests               |
-| 4    | `npm start`        | Start Hono server              |
-
-## 7. Release Process
-
-### 7.1 Release Pipeline
-
-```
-1. Feature freeze
-   |
-2. Version bump (app + engine if changed)
-   |
-3. Full test suite pass (parity + security + integration)
-   |
-4. Code coverage verification (Engine >80%, Overall >60%)
-   |
-5. Clinical advisor sign-off (if engine changes)
-   |
-6. Create git tag: v{X.Y.Z}
-   |
-7. Build release archive
-   |
-8. TestFlight internal distribution
-   |
-9. QA regression testing (3-5 business days)
-   |
-10. App Store submission
-    |
-11. Post-release monitoring (cross-validation logs, crash reports)
-```
-
-### 7.2 Release Artifacts
-
-| Artifact                   | Storage          | Retention  |
-|----------------------------|------------------|------------|
-| Git tag                    | GitHub           | Permanent  |
-| Xcode archive (.xcarchive) | Local + backup   | 2 years    |
-| IPA file                   | App Store Connect | Per Apple  |
-| Test results (.xcresult)   | CI artifacts     | 1 year     |
-| Build log                  | CI artifacts     | 1 year     |
-| CHANGELOG.md               | Git repository   | Permanent  |
-
-### 7.3 Hotfix Process
-
-For critical issues requiring immediate release:
-
-1. Branch from latest release tag.
-2. Apply minimal fix.
-3. Run affected test suites (minimum: parity tests + security tests).
-4. Emergency PR review (can be post-hoc for P0 security issues).
-5. Tag as `v{X.Y.Z+1}`.
-6. Expedited App Store review request.
-
-## 8. Tools
-
-| Tool        | Purpose                              | Version          |
-|-------------|--------------------------------------|------------------|
-| Xcode       | iOS IDE, build, test, archive         | 16.x             |
-| xcodegen    | Xcode project generation from YAML   | Latest stable     |
-| Git         | Version control                       | 2.x              |
-| GitHub      | Repository hosting, PR reviews         | Cloud             |
-| npm         | TypeScript dependency management       | 10.x             |
-| Vitest      | TypeScript testing framework           | Latest stable     |
-| XCTest      | Swift testing framework                | Built-in Xcode    |
-| Supabase    | Backend-as-a-Service, database         | Cloud             |
-| Render      | Backend hosting                        | Starter ($7/mo)   |
-| App Store Connect | iOS app distribution             | Cloud             |
-
-## 9. Audit Trail
-
-All configuration changes are traceable through:
-
-1. **Git history:** Every file change is committed with author, timestamp, and message.
-2. **PR reviews:** All changes go through pull request review with approval records.
-3. **Engine audit log:** Every computation logged to `ai_audit_log` with engine version.
-4. **Cross-validation log:** Backend logs every cross-validation request with delta.
-5. **Release tags:** Each release is immutably tagged in git.
+1. **Histórico Git:** Commits imutáveis vinculados a autores.
+2. **Pull Requests:** Aprovações formais documentadas no GitHub.
+3. **Logs de IA:** Tabela `ai_audit_log` no Supabase armazenando versões do LLM e hashes criptográficos de cada interação de suporte à decisão.
+4. **Tags de Release:** Marcações no Git garantindo a reprodução exata de qualquer build em produção.
 
 ---
 
-**Approval Signatures:**
+**Assinaturas de Aprovação:**
 
-| Role                    | Name | Date | Signature |
-|-------------------------|------|------|-----------|
-| Quality Manager         |      |      |           |
-| Software Development Lead |    |      |           |
-| Configuration Manager   |      |      |           |
+| **Função** | **Nome** | **Data** | **Assinatura** |
+|---|---|---|---|
+| Responsável Técnico (RT) | Dr. Alexandre Teixeira de Almeida | | |
+| Gerência Executiva | Arthur Teixeira de Almeida | | |
+| Compliance e Qualidade | Frederico | | |

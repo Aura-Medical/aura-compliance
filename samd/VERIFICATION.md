@@ -1,290 +1,178 @@
-# Verification and Validation Plan
+# Plano de Verificação e Validação
 
-**Document ID:** VV-001
-**Revision:** 1.0
-**Date:** 2026-03-27
-**Product:** Aura Medical iOS Application
-**Standard:** IEC 62304:2006+AMD1:2015 Section 5.7 (Software verification)
+**ID do Documento:** VV-001
+
+**Revisão:** 3.0 (v1.0.0 Stable Release)
+
+**Data:** 2026-04-10
+
+**Produto:** Aura Medical iOS Application & Aura+ Backend
+
+**Norma:** IEC 62304:2006+AMD1:2015 Seção 5.7 (Verificação de Software)
 
 ---
 
-## 1. Scope
+## 1. Escopo
 
-This document describes the verification and validation strategy for the Aura Medical iOS application, covering unit tests, integration tests, parity tests, cross-validation procedures, and acceptance criteria. The plan ensures that all requirements defined in TRACEABILITY.md are verified.
+Este documento descreve a estratégia de verificação e validação para o sistema Aura Medical (App iOS e Backend Aura+), cobrindo testes unitários, testes do motor clínico binário, testes de segurança e guardrails de Inteligência Artificial. O plano garante que todos os 33 requisitos definidos na Matriz de Rastreabilidade (`TRACEABILITY.md`, TM-001 Rev 3.0) sejam rigorosamente verificados.
 
-## 2. Test Strategy Overview
+## 2. Visão Geral da Estratégia de Testes
 
-| Test Level          | Scope                                          | Framework    | Automation |
-|---------------------|-------------------------------------------------|-------------|------------|
-| Unit Tests          | Engine functions, config, inference, validation  | XCTest      | CI         |
-| Parity Tests        | Swift vs. TypeScript engine output equivalence   | XCTest + Vitest | CI     |
-| Integration Tests   | Backend cross-validation, Supabase operations    | XCTest      | Manual     |
-| Security Tests      | Keychain, cert pinning, biometric auth, PHI blur | XCTest + Manual | Mixed  |
-| UI/Manual QA        | Score display, disclaimers, permissions, flows   | Manual      | Manual     |
-| Clinical Validation | Score plausibility against medical literature    | Expert review | Manual   |
+| **Nível de Teste** | **Escopo** | **Framework** | **Automação** |
+|---|---|---|---|
+| **Testes Unitários Clínicos** | Limiares de biomarcadores, status de domínio e validação de inputs. | XCTest | CI |
+| **Testes de Instrumentos** | Cálculos de PHQ-9, GAD-7, PSQI, FINDRISC e flags derivadas. | XCTest | CI |
+| **Testes de Backend (Aura+)** | Detecção de crise (regex), System Prompt Context e Audit Logging. | Vitest | CI |
+| **Testes de Segurança** | Auth Biométrica, Blur de PHI, Keychain, App Attest, RLS, Certificate Pinning. | XCTest + Vitest | Híbrido |
+| **Validação Clínica** | Adequação das recomendações (Medicine 3.0) e curadoria do catálogo de protocolos. | Revisão Médica | Manual |
 
-## 3. Coverage Targets
+## 3. Metas de Cobertura
 
-| Component              | Target Coverage | Rationale                                         |
-|------------------------|----------------|----------------------------------------------------|
-| Engine/ (core scoring) | **>80%**       | SaMD Class B requires high confidence in scoring logic |
-| Security/              | **>70%**       | Security controls must be verified thoroughly       |
-| Services/              | **>60%**       | Service orchestration tested via integration        |
-| Overall                | **>60%**       | IEC 62304 Class B minimum with risk-based approach  |
+| **Componente** | **Meta de Cobertura** | **Racional (Conformidade SaMD)** |
+|---|---|---|
+| `DomainEvaluator.swift` | **>90%** | Exige altíssima confiança nas regras de flag clínico e limiares binários. |
+| `aura-plus/safety.ts` | **>95%** | Módulo de contenção de risco de vida (detecção de crise) não pode apresentar falsos negativos. |
+| Controles de Segurança | **>80%** | Defesa de PHI e cumprimento da LGPD Art. 11 exigem verificações exaustivas. |
+| Geral do Sistema | **>60%** | Padrão mínimo para software de Classe II (Anvisa/IEC 62304). |
 
-## 4. Test Suites
+## 4. Suítes de Teste
 
-### 4.1 Engine Parity Tests
+### 4.1 Testes do Avaliador de Domínios
 
-**Purpose:** Verify that the Swift port of the Phenomic Engine produces identical results to the canonical TypeScript implementation for a defined set of test vectors.
+**Propósito:** Garantir que o `DomainEvaluator` conte corretamente as flags de risco com base nas diretrizes clínicas, aplicando Data Caps e respeitando o limite mínimo de itens (Ghost Mode).
 
-**Source of Truth:** `phenomic-engine/parity-vectors.json` (8 canonical test vectors)
+**Vetores de Teste:**
 
-**Test Vectors:**
+| **ID** | **Cenário** | **Resultado Esperado** | **Validação Central** |
+|---|---|---|---|
+| **EV-01** | Homem saudável, dados completos | Todos os 5 domínios retornam status "Saudável" (Level = 0) | Caminho feliz total |
+| **EV-02** | Dados insuficientes (< 3 itens) | Domínio retorna `level: nil` | Ghost Mode (REQ-13) |
+| **EV-03** | ApoB = 92 mg/dL | Flag `apob_elevated` ativada | Data Cap de Alto Risco (REQ-12) |
+| **EV-04** | Mulher com Ácido Úrico = 6.2 | Flag `uric_acid_elevated` ativada | Limiares Específicos por Sexo (REQ-24) |
+| **EV-05** | Questionário Saudável + HbA1c 5.8% | Flag `hba1c_prediabetic` ativada | Lab sobrepõe Questionário (REQ-12) |
+| **EV-06** | Dados de Garmin + Oura + Apple Watch | Domínios Sono e Movimento recebem inputs de 3 fontes | Ingestão Multi-Fonte (REQ-28) |
 
-| Vector | Description                                | Expected Score | Key Assertion           |
-|--------|--------------------------------------------|---------------|-------------------------|
-| 1      | Complete healthy male, all data             | 78-82         | Full data path          |
-| 2      | Complete healthy female, all data           | 75-80         | Gender-specific ranges   |
-| 3      | Minimal data (questionnaire only)           | 35-45         | Ghost Mode caps active   |
-| 4      | Extreme high-risk biomarkers                | 15-25         | Data caps, systemic drag |
-| 5      | Wearable-only (no labs)                     | 50-60         | Inference active         |
-| 6      | Lab-only (no wearables)                     | 55-65         | Activity fallback        |
-| 7      | Out-of-range inputs (validation edge cases) | Variable      | Validation rejects       |
-| 8      | Mixed data with inference needs             | 60-70         | Inference + real data    |
+**Critérios de Aceite:**
 
-**Acceptance Criteria:**
-- Swift `totalScore` must match TypeScript `totalScore` exactly (integer comparison).
-- Each domain slice score must match within +/- 1 point.
-- All rejected inputs must produce identical `rejected[]` arrays.
-- InferredIds arrays must be identical.
+- Exatamente 5 objetos `DomainStatus` retornados.
+- Limiares aplicados condicionalmente à idade/sexo quando apropriado.
+- *Requisitos Verificados:* REQ-01, REQ-02, REQ-12, REQ-13, REQ-15, REQ-24, REQ-25, REQ-28, REQ-34.
 
-**Procedure:**
-1. Load `parity-vectors.json` in XCTest.
-2. For each vector, construct `EngineComputeRequest` from JSON input.
-3. Call `PhenomicEngine.compute(input:config:)` with default config.
-4. Assert `totalScore`, each slice score, rejected list, and inferredIds against expected values.
+### 4.2 Testes de Instrumentos Clínicos Validados
 
-**Related Requirements:** REQ-01, REQ-02, REQ-04, REQ-12, REQ-13, REQ-14, REQ-15, REQ-22, REQ-23
+**Propósito:** Validar que as escalas psiquiátricas e metabólicas produzem scores totais exatos e emitem as `derivedFlags` corretas, substituindo as flags básicas do onboarding.
 
-### 4.2 Input Validation Tests
+**Casos de Teste:**
 
-**Purpose:** Verify that `validateInput()` correctly rejects physiologically implausible values and sanitizes input.
+| **ID** | **Instrumento** | **Inputs** | **Resultado Esperado** |
+|---|---|---|---|
+| **INST-01** | PHQ-9 | Item 9 = 2, Total = 11 | `severity: "moderate"`, `hasSafetyAlert: true` |
+| **INST-02** | GAD-7 | Todos os itens = 0 | `severity: "minimal"`, flags vazias |
+| **INST-03** | PSQI | Eficiência < 65% | Componente 4 = 3, flag `psqi_efficiency` gerada |
+| **INST-04** | FINDRISC | IMC 28, Histórico Pessoal | Flag `findrisc_bmi` e `findrisc_glucose` |
 
-**Test Cases:**
+**Critérios de Aceite:**
 
-| Test Case             | Input                           | Expected Result                          |
-|-----------------------|---------------------------------|------------------------------------------|
-| VAL-01: Glucose high  | homaIr: 999                    | Rejected: "homaIr: 999 outside [...]"    |
-| VAL-02: HRV negative  | hrv: -10                        | Rejected: "hrv: -10 outside [...]"        |
-| VAL-03: NaN handling  | rhr: NaN                        | Rejected: "rhr: NaN"                      |
-| VAL-04: Age too low   | age: 5                          | Clamped to 18; added to rejected          |
-| VAL-05: Age too high  | age: 200                        | Clamped to 120; added to rejected         |
-| VAL-06: All valid     | All within range                | valid: true, rejected: []                 |
-| VAL-07: BMI nil       | bmi: nil                        | Falls back to 24.5 (neutral BMI)          |
-| VAL-08: BP extreme    | systolicBP: 300                 | Rejected: "systolicBP: 300 outside [...]" |
-| VAL-09: Steps extreme | steps: 200000                   | Rejected: "steps: 200000 outside [...]"   |
-| VAL-10: Multiple bad  | hrv: -1, rhr: 300, cortisol: 99 | All three in rejected array               |
+- A soma aritmética dos itens do instrumento deve ser perfeita.
+- O mapeamento de severidade deve corresponder ao artigo clínico base.
+- O `hasSafetyAlert` do PHQ-9 deve ser propagado corretamente.
+- *Requisitos Verificados:* REQ-14, REQ-29, REQ-34.
 
-**Acceptance Criteria:**
-- Every input field has min/max validation.
-- NaN values are caught and rejected.
-- Age is clamped (not rejected) to [18, 120].
-- BMI falls back to 24.5 when nil.
-- `ValidationResult.valid` is `false` when any field rejected.
+### 4.3 Testes de Segurança de Inteligência Artificial (Aura+)
 
-**Related Requirements:** REQ-01
+**Propósito:** Validar que as barreiras estruturais do LLM não podem ser rompidas por falhas no sistema ou prompts adversariais.
 
-### 4.3 Inference Layer Tests
+**Casos de Teste:**
 
-**Purpose:** Verify that the Inference Layer correctly estimates missing symptoms using correlation coefficients and discount factors.
+| **ID** | **Componente** | **Ação / Input** | **Resultado Esperado** |
+|---|---|---|---|
+| **AI-01** | Safety Gate | String "eu quero morrer" | Bypassa API Anthropic; Retorna bloco `escalation` (CVV 188) |
+| **AI-02** | Doctor-in-the-Loop | Consulta concluída = false | API retorna 403 `pending_unlock` |
+| **AI-03** | LLM Lock Rule | Geração de Protocolo | Output JSON força `locked: true` |
+| **AI-04** | LGPD Consent | Utilizador sem row de consentimento | Acesso negado (403 consent_required) |
+| **AI-05** | Audit Trail | Execução de chat | Row criada no `ai_audit_log` com hash SHA-256 e versão |
+| **AI-06** | Snapshot Cache | TTL de 6h expirado, nova query | Cache rebuild com 5 queries paralelas; `has_active_safety_alert` propagado |
 
-**Test Cases:**
+**Critérios de Aceite:**
 
-| Test Case             | Measured Symptoms       | Expected Behavior                            |
-|-----------------------|------------------------|----------------------------------------------|
-| INF-01: All present   | All non-nil            | No inference; inferredIds empty               |
-| INF-02: Basic infer   | 3 measured, 2 nil      | Missing inferred from correlations             |
-| INF-03: Below threshold | Source value < 3     | No propagation (threshold guard)               |
-| INF-04: Discount factor | Confidence level 2   | Inferred values reduced by discount factor     |
-| INF-05: Real overrides | Target has real data   | Real value preserved, not overwritten          |
-| INF-06: Audit trail   | Any inference           | AuditEntry contains source, coefficient, target |
-| INF-07: Ghost default | No measured symptoms    | Ghost default (3) used as baseline             |
+- O detector de crises não emite falsos negativos em strings mapeadas.
+- Nenhum dado de prompt trafega pela rede se o consentimento não existir.
+- A aplicação rejeita gerar protocolos desbloqueados.
+- Cache de snapshot reconstruído corretamente após expiração do TTL.
+- *Requisitos Verificados:* REQ-03, REQ-04, REQ-21, REQ-32, REQ-33, REQ-35, REQ-36, REQ-37, REQ-38.
 
-**Acceptance Criteria:**
-- Real data is never overwritten by inference.
-- Propagation threshold (>= 3) enforced.
-- Discount factors correctly applied per confidence level.
-- Audit trail entry created for every inferred value.
+### 4.4 Testes de Segurança de Infraestrutura
 
-**Related Requirements:** REQ-15, REQ-35
+**Propósito:** Verificar a eficácia dos controles de defesa do paciente, proteção de PHI em trânsito e em repouso.
 
-### 4.4 Cross-Validation Tests
+| **ID** | **Componente** | **Procedimento** | **Resultado Esperado** |
+|---|---|---|---|
+| **SEC-01** | Keychain | Ciclo de salvamento e leitura em lock de tela | Dado acessível apenas em desbloqueio |
+| **SEC-02** | Pinning HTTP | Modificar certificado SSL localmente | Conexão recusada no handshake (fail-closed) |
+| **SEC-03** | PHI Blur | Enviar app para multitarefa (background) | Gaussian Blur aplicado instantaneamente |
+| **SEC-04** | App Attest | Lançar app modificado | Backend recusa payload não assinado pela Apple |
+| **SEC-05** | Higiene Logout | Acionar função "Sign Out" | Banco SQLite e Keychain deletados |
+| **SEC-06** | Exclusão de Conta | Chamar RPC `delete_my_account()` | Soft-delete em cascata; dados inacessíveis após 30 dias |
+| **SEC-07** | Higiene de Logs | Grep por `print(` no código Swift | Zero ocorrências; apenas `os.Logger` com `privacy: .private` |
+| **SEC-08** | Privacy Descriptions | Build do projeto e inspeção do Info.plist | Descrições PT-BR presentes para HealthKit, Face ID, Câmara e Fotos |
 
-**Purpose:** Verify that the iOS app correctly sends computation results to the backend for TypeScript engine cross-validation, and that discrepancies are detected.
+- *Requisitos Verificados:* REQ-05, REQ-06, REQ-07, REQ-08, REQ-09, REQ-10, REQ-11, REQ-16, REQ-17, REQ-18, REQ-19, REQ-20, REQ-31.
 
-**Procedure:**
+### 4.5 Validação Clínica (Manual)
 
-1. **Setup:** Deploy backend with `/api/engine/validate` endpoint active.
-2. **Trigger:** Call `PhenomicService.recompute()` with known test data.
-3. **Verify Request:** Capture network request to backend; confirm payload includes:
-   - `input_hash` (SHA-256)
-   - `output_score` (integer 0--100)
-   - `output_slices` (5 domain objects)
-   - `engine_version` ("4.2.0-swift")
-   - `precision` (integer)
-   - `most_impacted_id` (string)
-   - `input_data` (full input for server-side recomputation)
-4. **Verify Response:** Confirm `EngineValidationResponse` includes:
-   - `valid: true` (or `false` with `delta` value)
-   - `delta` field when cross-validation performed
-5. **Discrepancy Test:** Artificially modify Swift engine output by 5 points; verify backend detects `delta > 2` and flags as invalid.
+**Propósito:** Provar à Anvisa que o catálogo de protocolos e a leitura de exames aderem estritamente à literatura de Medicina Preventiva 3.0 e aos preceitos do CFM.
 
-**Acceptance Criteria:**
-- Cross-validation fires on every `recompute()` call (fire-and-forget).
-- Delta <= 2: validation passes.
-- Delta > 2: validation fails, discrepancy logged.
-- Network failure does not block user experience.
+**Procedimento:**
 
-**Related Requirements:** REQ-04
+1. **Revisão por Pares Médicos:** Avaliar o `BiomarkerContent.swift` contra diretrizes (ADA 2024, AHA PREVENT, artigos de Peter Attia).
+2. **Auditoria de Catálogo:** Garantir que o `PROTOCOLS_CATALOG` contém exclusivamente intervenções de baixo risco, com contraindicações documentadas, não configurando diagnóstico de doenças do CID-10/11.
+3. **Stress Test do LLM:** Conduzir sessões de chat reais simulando pacientes complexos para verificar se a IA se recusa a atuar como terapeuta ou prescritora de moléculas.
 
-### 4.5 Security Tests
+## 5. Procedimentos de Execução de Teste
 
-**Purpose:** Verify all security controls are functional and effective.
-
-| Test Case          | Component                  | Procedure                                               | Expected Result                     |
-|--------------------|----------------------------|---------------------------------------------------------|-------------------------------------|
-| SEC-01: Keychain   | AuraKeychain               | Save, load, delete cycle; verify accessibility attribute | Data persisted and retrievable       |
-| SEC-02: Cert Pin   | CertificatePinning         | Connect to pinned host; connect to unpinned host        | Pinned succeeds; unpinned allowed    |
-| SEC-03: Pin fail   | CertificatePinning         | Connect with mismatched pin hash                        | Connection rejected (fail-closed)    |
-| SEC-04: Biometric  | BiometricAuthManager       | Enable biometric; background app; return to foreground  | Lock screen appears                  |
-| SEC-05: Idle timer | BiometricAuthManager       | Enable biometric; idle 30+ minutes                      | Auto-lock triggers                   |
-| SEC-06: PHI blur   | PHIProtectionModifier      | Background app; take screenshot; start screen recording | 30-radius blur applied               |
-| SEC-07: Audit log  | EngineAuditLogger          | Compute score; check ai_audit_log table                 | Row created with correct hash/version |
-| SEC-08: Audit fail | EngineAuditLogger          | Disconnect network; compute score                       | Score returned; failure logged locally |
-| SEC-09: App Attest | AppAttestManager           | First launch on device; verify keychain entry           | Key generated and stored             |
-| SEC-10: Logout     | AuthViewModel.signOut()    | Sign out; verify SwiftData and Keychain cleared         | All local PHI deleted                |
-
-**Related Requirements:** REQ-03, REQ-05, REQ-06, REQ-07, REQ-08, REQ-09, REQ-11, REQ-18, REQ-19
-
-### 4.6 Clinical Validation
-
-**Purpose:** Verify that engine scores are clinically plausible and consistent with medical literature on allostatic load.
-
-**Procedure:**
-
-1. **Expert Review:** Clinical advisor reviews scoring algorithm, reference ranges, and biomarker weights against published allostatic load literature (McEwen 1998, Juster et al. 2010, Seeman et al. 2001).
-2. **Case Studies:** Process 20+ representative patient profiles (anonymized) through the engine and review scores for clinical plausibility.
-3. **Boundary Analysis:** Verify that:
-   - Perfectly healthy biomarkers produce score >= 75.
-   - All biomarkers at critical thresholds produce score <= 30.
-   - Mixed profiles produce intermediate scores proportional to risk burden.
-4. **Gender Sensitivity:** Verify gender-specific reference ranges (WHR, HDL, ferritin, DHEA-S) produce clinically appropriate score differences.
-
-**Acceptance Criteria:**
-- Clinical advisor signs off on algorithm and reference ranges.
-- 90% of case studies produce clinically plausible scores (expert judgment).
-- No false "excellent" (>80) for clearly unhealthy profiles.
-- No false "critical" (<20) for clearly healthy profiles.
-
-**Related Requirements:** REQ-02, REQ-12, REQ-24
-
-## 5. Test Execution Procedures
-
-### 5.1 Running Parity Tests (Swift)
+### 5.1 Rodando Testes do Cliente (Swift)
 
 ```bash
-# From aura-ios/ repository root
-cd /Users/alexandretalmeida/aura-wearables/aura-ios
-xcodebuild test \
-  -scheme AuraMedical \
-  -destination 'platform=iOS,name=<device_name>' \
-  -testPlan EngineParity \
-  -resultBundlePath TestResults/parity.xcresult
+cd aura-ios
+xcodebuild test -scheme AuraMedical -destination 'platform=iOS,name=<device_name>' -resultBundlePath TestResults/full.xcresult
 ```
 
-### 5.2 Running Parity Tests (TypeScript)
+### 5.2 Rodando Testes do Backend (Aura+)
 
 ```bash
-# From phenomic-engine/ repository root
-cd /Users/alexandretalmeida/aura-wearables/phenomic-engine
-npm test -- --run parity
+cd aura-backend
+npm run test
 ```
 
-### 5.3 Running All Swift Tests
+## 6. Ambiente de Teste
 
-```bash
-cd /Users/alexandretalmeida/aura-wearables/aura-ios
-xcodebuild test \
-  -scheme AuraMedical \
-  -destination 'platform=iOS,name=<device_name>' \
-  -resultBundlePath TestResults/full.xcresult
-```
+- **IDE:** Xcode 16.x+ (Swift) e VS Code (Node/TS)
+- **Dispositivo de Teste:** Dispositivo Físico iOS (testes de biometria e App Attest falham em simuladores)
+- **Banco de Dados:** Ambiente de Staging do Supabase (PostgreSQL 15+)
 
-### 5.4 Running Backend Cross-Validation Test
+## 7. Gerenciamento de Defeitos
 
-```bash
-# From aura-backend/ repository root
-cd /Users/alexandretalmeida/aura-wearables/aura-backend
-npm test -- --run engine-validate
-```
+| **Severidade** | **Definição** | **Resposta** |
+|---|---|---|
+| **Crítico** | Falha no Safety Gate ou exposição de PHI de terceiros. | Correção Imediata (Hotfix) |
+| **Alto** | Falso negativo na contagem de um limiar binário. | Bloqueador de Release |
+| **Médio** | Erro de formatação no Markdown do chat, sem impacto clínico. | Sprint Seguinte |
+| **Baixo** | Inconsistência puramente cosmética na UI. | Backlog |
 
-### 5.5 Measuring Code Coverage
+## 8. Critérios de Liberação de Release (Go-Live)
 
-```bash
-cd /Users/alexandretalmeida/aura-wearables/aura-ios
-xcodebuild test \
-  -scheme AuraMedical \
-  -destination 'platform=iOS,name=<device_name>' \
-  -enableCodeCoverage YES \
-  -resultBundlePath TestResults/coverage.xcresult
-
-# Extract coverage report
-xcrun xccov view --report TestResults/coverage.xcresult
-```
-
-## 6. Test Environment
-
-| Component         | Specification                                   |
-|-------------------|-------------------------------------------------|
-| Xcode             | 16.x (latest stable)                            |
-| iOS Deployment    | 17.0 minimum                                    |
-| Test Device       | Physical iOS device (NOT simulator -- per project policy) |
-| Node.js           | 20 LTS                                          |
-| TypeScript Engine  | Vitest                                          |
-| Backend           | Hono v4 on Node 20                              |
-| Database          | Supabase (PostgreSQL 15+)                        |
-
-## 7. Defect Management
-
-| Severity | Definition                                          | Response Time | Resolution Target |
-|----------|-----------------------------------------------------|---------------|-------------------|
-| Critical | Score calculation produces clinically dangerous result | 4 hours       | 24 hours          |
-| High     | Security control failure; PHI exposure                | 8 hours       | 48 hours          |
-| Medium   | Score inaccuracy > 5 points from expected            | 24 hours      | 1 week            |
-| Low      | UI display issue; non-blocking error                  | 1 week        | Next release      |
-
-## 8. Release Criteria
-
-The following criteria must be met before any release:
-
-1. All parity test vectors pass (0 failures).
-2. Input validation test suite passes (0 failures).
-3. Engine code coverage >= 80%.
-4. Overall code coverage >= 60%.
-5. No Critical or High severity open defects.
-6. Cross-validation delta <= 2 for all test vectors.
-7. Security test suite passes (all SEC-01 through SEC-10).
-8. Clinical advisor sign-off on scoring algorithm.
-9. All disclaimers present and readable on score screens.
-10. Privacy usage descriptions present for all permissions.
+1. Zero falhas nas Suítes de Avaliação Binária e Instrumentos.
+2. Zero falhas na Suíte de Segurança de IA (Safety Gate).
+3. Cobertura de código do `DomainEvaluator.swift` >= 90%.
+4. Assinatura formal do Responsável Técnico para novos biomarcadores ou protocolos.
+5. Nenhum defeito Crítico ou Alto em aberto.
 
 ---
 
-**Approval Signatures:**
+**Assinaturas de Aprovação:**
 
-| Role                    | Name | Date | Signature |
-|-------------------------|------|------|-----------|
-| Quality Manager         |      |      |           |
-| Test Lead               |      |      |           |
-| Software Development Lead |    |      |           |
+| **Função** | **Nome** | **Data** | **Assinatura** |
+|---|---|---|---|
+| Responsável Técnico (RT) | Dr. Alexandre Teixeira de Almeida | | |
+| Gestor de Qualidade | Frederico | | |
+| Líder de Desenvolvimento | Arthur Teixeira de Almeida | | |

@@ -1,411 +1,364 @@
-# Risk Analysis (ISO 14971 FMEA)
+# Análise de Risco (ISO 14971 — FMEA)
 
-**Document ID:** RA-001
-**Revision:** 1.0
-**Date:** 2026-03-27
-**Product:** Aura Medical iOS Application
-**Standard:** ISO 14971:2019 -- Application of risk management to medical devices
-**Method:** Failure Mode and Effects Analysis (FMEA)
-**Classification:** SaMD Class B (IEC 62304), IMDRF Risk Category II
+**ID do Documento:** RA-001
 
----
+**Revisão:** 3.0 (v1.0.0 Stable Release)
 
-## 1. Scope
+**Data:** 2026-04-10
 
-This risk analysis covers all identified hazards associated with the Aura Medical iOS application, including software failures, data integrity issues, security threats, and use errors. The analysis follows the FMEA methodology with Risk Priority Numbers (RPN) calculated as:
+**Produto:** Aura Medical iOS Application & Aura+ Backend
 
-**RPN = Severity x Likelihood x Detection**
+**Norma:** ISO 14971:2019 — Aplicação da gestão de risco a dispositivos médicos
 
-Where each factor is rated on a scale of 1--5:
+**Método:** Análise de Modos de Falha e Efeitos (FMEA)
 
-### Severity Scale
-
-| Rating | Level      | Description                                                                |
-|--------|------------|----------------------------------------------------------------------------|
-| 1      | Negligible | No impact on user health decisions; cosmetic issue only                    |
-| 2      | Minor      | Slight inconvenience; user may notice but no behavioral impact             |
-| 3      | Moderate   | User may make a suboptimal wellness decision based on incorrect information |
-| 4      | Major      | User may delay seeking medical care or make a harmful lifestyle change      |
-| 5      | Critical   | User may forgo necessary medical treatment based on false reassurance       |
-
-### Likelihood Scale
-
-| Rating | Level    | Description                                  |
-|--------|----------|----------------------------------------------|
-| 1      | Rare     | Less than once per 100,000 uses              |
-| 2      | Unlikely | Once per 10,000--100,000 uses                |
-| 3      | Possible | Once per 1,000--10,000 uses                  |
-| 4      | Likely   | Once per 100--1,000 uses                     |
-| 5      | Frequent | More than once per 100 uses                  |
-
-### Detection Scale
-
-| Rating | Level          | Description                                                     |
-|--------|----------------|-----------------------------------------------------------------|
-| 1      | Almost certain | Automated detection with blocking action (e.g., input validation rejects) |
-| 2      | High           | Automated detection with alert/log (e.g., cross-validation delta) |
-| 3      | Moderate       | Detectable through routine testing or monitoring                 |
-| 4      | Low            | Detectable only through targeted investigation                   |
-| 5      | Undetectable   | No detection mechanism currently in place                        |
-
-### RPN Thresholds
-
-| RPN Range | Risk Level  | Action Required                                       |
-|-----------|-------------|-------------------------------------------------------|
-| 1--15     | Acceptable  | No additional action required; monitor                 |
-| 16--39    | Low         | Document mitigation; review at next design cycle       |
-| 40--74    | Medium      | Implement additional controls before release           |
-| 75--125   | High        | Requires immediate mitigation; management review       |
+**Classificação:** SaMD Classe II (Anvisa RDC 657/2022), IMDRF Categoria II
 
 ---
 
-## 2. Hazard Analysis Table
+## 1. Escopo
 
-### HAZ-01: Falsely High Score for Clinically Unwell Patient
+Esta análise de risco cobre todos os perigos identificados para o sistema Aura Medical (v1.0.0), incluindo avaliações binárias determinísticas, interações com LLM (IA Generativa), integridade de dados, segurança cibernética e proteção de informações de saúde protegidas (PHI). A análise segue a metodologia FMEA com Números de Prioridade de Risco (RPN) calculados como:
 
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-01                                                                              |
-| **Hazard**      | Engine produces a high (good) score for a patient who is clinically unwell           |
-| **Cause**       | Missing lab data; inference layer fills gaps with optimistic estimates; user has not entered biomarkers |
-| **Effect**      | User falsely reassured; may delay seeking necessary medical care                     |
-| **Severity**    | 5                                                                                   |
-| **Likelihood**  | 3                                                                                   |
-| **Detection**   | 2                                                                                   |
-| **RPN**         | **30**                                                                               |
-| **Mitigation**  | (1) Input validation rejects physiologically implausible values (REQ-01). (2) Ghost Mode applies conservative caps when data is missing (REQ-13). (3) Inference Layer uses discount factors that reduce confidence of estimated values (REQ-15). (4) Precision indicator clearly shows data completeness percentage. (5) All screens display disclaimer: "This is not a medical diagnosis." (6) Systemic Drag penalty cross-penalizes domains when severe markers detected (REQ-14). |
-| **Residual Risk** | Low. Multiple conservative safeguards plus mandatory disclaimer reduce risk of false reassurance. Score is explicitly labeled as wellness estimate, not diagnostic. |
-| **Traceability** | REQ-01, REQ-13, REQ-14, REQ-15; INTENDED_USE.md Section 2.2 |
-
-### HAZ-02: User Acts on Score Without Medical Guidance
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-02                                                                              |
-| **Hazard**      | User makes health decisions (diet, exercise, supplements) based solely on score without consulting a physician |
-| **Cause**       | User interprets wellness score as medical advice; insufficient disclaimers           |
-| **Effect**      | Inappropriate self-treatment; delay in professional diagnosis                        |
-| **Severity**    | 4                                                                                   |
-| **Likelihood**  | 4                                                                                   |
-| **Detection**   | 4                                                                                   |
-| **RPN**         | **64**                                                                               |
-| **Mitigation**  | (1) Prominent disclaimers on ScoreView, DomainDetailView, and ResultsView. (2) Intended use statement explicitly excludes diagnostic claims. (3) App Store description includes wellness-only positioning. (4) In-app text uses "wellness estimate" language, never "diagnosis" or "treatment." (5) Onboarding flow includes disclaimer acceptance. |
-| **Residual Risk** | Medium. User behavior cannot be fully controlled, but comprehensive disclaimers and non-diagnostic language reduce likelihood of misinterpretation. Residual risk accepted per benefit-risk analysis. |
-| **Traceability** | INTENDED_USE.md Sections 2.2, 7 |
-
-### HAZ-03: Biometric Data Corrupted in Transit
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-03                                                                              |
-| **Hazard**      | Health data (lab results, biometrics) corrupted or intercepted during network transmission |
-| **Cause**       | Man-in-the-middle attack; TLS downgrade; compromised certificate authority           |
-| **Effect**      | Corrupted data produces incorrect score; PHI exposed to attacker                     |
-| **Severity**    | 4                                                                                   |
-| **Likelihood**  | 1                                                                                   |
-| **Detection**   | 1                                                                                   |
-| **RPN**         | **4**                                                                                |
-| **Mitigation**  | (1) TLS 1.2+ enforced for all network connections. (2) Certificate pinning via SPKI SHA-256 hashes with fail-closed policy (REQ-07). (3) Backup pin (intermediate CA) for certificate rotation. (4) ASN.1 header validation for EC P-256 and RSA key types. (5) Pinned hosts explicitly enumerated; connections to unknown hosts rejected. |
-| **Residual Risk** | Very low. Certificate pinning with fail-closed design and backup pins makes MITM attacks practically infeasible. |
-| **Traceability** | REQ-07; `Security/CertificatePinning.swift` |
-
-### HAZ-04: Engine Divergence Between Swift and TypeScript
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-04                                                                              |
-| **Hazard**      | Swift engine produces different score than canonical TypeScript engine for identical inputs |
-| **Cause**       | Code drift after update to one engine without propagating to the other; floating-point differences; config sync failure |
-| **Effect**      | Inconsistent scores across platforms; audit trail discrepancies; loss of regulatory traceability |
-| **Severity**    | 3                                                                                   |
-| **Likelihood**  | 2                                                                                   |
-| **Detection**   | 1                                                                                   |
-| **RPN**         | **6**                                                                                |
-| **Mitigation**  | (1) Cross-validation: every iOS computation is sent to backend for TS engine recomputation; delta must be <= 2 points (REQ-04). (2) Parity test vectors (8 canonical cases) validated on both engines. (3) 3-repo sync protocol documented in CONFIG_MGMT.md. (4) Engine version stamped in audit log for traceability. (5) PR review required for any Engine/ directory changes. |
-| **Residual Risk** | Very low. Automated cross-validation on every computation catches drift immediately. Parity tests prevent regression. |
-| **Traceability** | REQ-04; CONFIG_MGMT.md; `Services/PhenomicService.swift:sendBackendValidation()` |
-
-### HAZ-05: PHI Exposed in Application Logs
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-05                                                                              |
-| **Hazard**      | Protected Health Information (PHI) written to console logs, crash reports, or analytics |
-| **Cause**       | Developer uses `print()` instead of `os.Logger`; log message includes raw biomarker values |
-| **Effect**      | PHI exposure in device logs accessible via Xcode or crash reporting services          |
-| **Severity**    | 4                                                                                   |
-| **Likelihood**  | 2                                                                                   |
-| **Detection**   | 2                                                                                   |
-| **RPN**         | **16**                                                                               |
-| **Mitigation**  | (1) All Security/ files use `os.Logger` with `privacy: .private` annotations (REQ-19). (2) Backend uses Pino logger with PHI field redaction. (3) Code review checklist includes PHI logging verification. (4) Audit logger hashes inputs (SHA-256) instead of storing raw values. (5) No PHI in crash reports (only anonymized error descriptions). |
-| **Residual Risk** | Low. Systematic use of privacy-aware logging and input hashing prevents PHI leakage. Code review process provides additional catch. |
-| **Traceability** | REQ-19; `Security/EngineAuditLogger.swift:hashInput()` |
-
-### HAZ-06: Score Display Error in UI
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-06                                                                              |
-| **Hazard**      | UI displays incorrect score due to binding error, race condition, or rendering bug    |
-| **Cause**       | SwiftUI @Published state not properly propagated; concurrent update; stale cache      |
-| **Effect**      | User sees wrong score, potentially making incorrect wellness assessment               |
-| **Severity**    | 3                                                                                   |
-| **Likelihood**  | 2                                                                                   |
-| **Detection**   | 3                                                                                   |
-| **RPN**         | **18**                                                                               |
-| **Mitigation**  | (1) PhenomicService is the single source of truth for all score displays. (2) @Published property wrapper ensures SwiftUI reactivity. (3) Score persisted to SwiftData (LocalScore) and Supabase for verification. (4) Manual QA testing on score display screens. (5) Engine result is immutable struct — no mutation after computation. |
-| **Residual Risk** | Low. Single-source-of-truth architecture and immutable result structs minimize display errors. |
-| **Traceability** | REQ-02; `Services/PhenomicService.swift`; `ViewModels/DashboardViewModel.swift` |
-
-### HAZ-07: HealthKit Data Stale or Missing
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-07                                                                              |
-| **Hazard**      | Wearable data from HealthKit is stale (days old) or completely absent                |
-| **Cause**       | User removes wearable; HealthKit authorization revoked; Apple Watch not worn; background delivery fails |
-| **Effect**      | Score computed with outdated or missing wearable inputs, reducing accuracy            |
-| **Severity**    | 2                                                                                   |
-| **Likelihood**  | 4                                                                                   |
-| **Detection**   | 2                                                                                   |
-| **RPN**         | **16**                                                                               |
-| **Mitigation**  | (1) Ghost Mode applies conservative caps when wearable data is absent (REQ-13). (2) Activity vector falls back to configurable pessimistic score. (3) Precision indicator shows reduced confidence without wearable data. (4) HealthKitSyncService uses background delivery for timely updates. (5) Inference Layer can estimate wearable-dependent symptoms from lab data with discount factors. |
-| **Residual Risk** | Low. Conservative fallbacks ensure score never overstates wellness when data is missing. Precision badge clearly communicates data completeness. |
-| **Traceability** | REQ-13, REQ-15; `Engine/EngineConfig.swift:GhostMode`; `Services/HealthKitSyncService.swift` |
-
-### HAZ-08: Incorrect Lab OCR Extraction
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-08                                                                              |
-| **Hazard**      | OCR misreads lab result values from uploaded document (e.g., "1.5" read as "15")     |
-| **Cause**       | Poor image quality; unusual lab report format; OCR model error                       |
-| **Effect**      | Grossly incorrect biomarker value enters engine, producing misleading score           |
-| **Severity**    | 4                                                                                   |
-| **Likelihood**  | 3                                                                                   |
-| **Detection**   | 1                                                                                   |
-| **RPN**         | **12**                                                                               |
-| **Mitigation**  | (1) Input validation rejects values outside physiological ranges (REQ-01) — e.g., glucose > 600 is rejected. (2) User review screen shows extracted values for manual confirmation before saving. (3) PhysiologicalRanges config defines min/max for every lab biomarker. (4) Rejected values logged with reason for audit trail. |
-| **Residual Risk** | Very low. Physiological range validation catches order-of-magnitude OCR errors. User review provides final checkpoint. |
-| **Traceability** | REQ-01; `Engine/PhenomicEngine.swift:validateInput()`; `Services/LabOCRService.swift` |
-
-### HAZ-09: Database Breach Exposing PHI
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-09                                                                              |
-| **Hazard**      | Unauthorized access to Supabase database exposes user health records                 |
-| **Cause**       | SQL injection; misconfigured RLS policies; compromised service key; insider threat    |
-| **Effect**      | Mass PHI exposure; regulatory violation (LGPD, HIPAA)                                |
-| **Severity**    | 5                                                                                   |
-| **Likelihood**  | 1                                                                                   |
-| **Detection**   | 2                                                                                   |
-| **RPN**         | **10**                                                                               |
-| **Mitigation**  | (1) Supabase Row-Level Security (RLS) on all tables containing PHI. (2) Encryption at rest (Supabase default AES-256). (3) Certificate pinning prevents MITM to database (REQ-07). (4) pgaudit extension for database access logging. (5) Service role key never exposed to client; only anon key used from iOS. (6) Parameterized queries via Supabase client SDK (no raw SQL from client). |
-| **Residual Risk** | Very low. Defense-in-depth with RLS, encryption, audit logging, and pinning provides comprehensive protection. |
-| **Traceability** | REQ-07, REQ-16; `Services/SupabaseClient.swift` |
-
-### HAZ-10: Session Hijacking
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-10                                                                              |
-| **Hazard**      | Attacker gains access to user's authenticated session                                |
-| **Cause**       | Stolen JWT token; shared device without screen lock; background session theft         |
-| **Effect**      | Unauthorized access to user's health data and account                                |
-| **Severity**    | 4                                                                                   |
-| **Likelihood**  | 2                                                                                   |
-| **Detection**   | 2                                                                                   |
-| **RPN**         | **16**                                                                               |
-| **Mitigation**  | (1) Biometric authentication required when enabled (REQ-06). (2) 30-minute idle timeout auto-locks app (REQ-08). (3) PHI blur on background (REQ-05) prevents screenshot capture of health data. (4) JWT tokens stored in Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` (REQ-09). (5) App Attest validates device integrity (REQ-11). |
-| **Residual Risk** | Low. Multi-layered authentication and session management significantly reduce hijacking risk. |
-| **Traceability** | REQ-05, REQ-06, REQ-08, REQ-09, REQ-11 |
-
-### HAZ-11: Inference Layer Produces Misleading Estimate
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-11                                                                              |
-| **Hazard**      | Inference Layer estimates missing symptoms inaccurately, distorting domain scores     |
-| **Cause**       | Weak correlation used for inference; source value near propagation threshold; multiple chained inferences |
-| **Effect**      | Domain score inflated or deflated based on unreliable estimates                       |
-| **Severity**    | 3                                                                                   |
-| **Likelihood**  | 3                                                                                   |
-| **Detection**   | 2                                                                                   |
-| **RPN**         | **18**                                                                               |
-| **Mitigation**  | (1) Discount factors reduce inferred value confidence based on data tier (REQ-15). (2) Propagation threshold (>= 3) prevents weak signals from triggering inference. (3) Real data always overrides inferred values. (4) Audit trail logs all inferred values with source, coefficient, and reference. (5) Ghost Mode default value (3) serves as conservative baseline. (6) Precision indicator reflects inference proportion. |
-| **Residual Risk** | Low. Conservative discount factors, propagation threshold, and real-data override prevent meaningful distortion. |
-| **Traceability** | REQ-15; `Engine/InferenceLayer.swift` |
-
-### HAZ-12: Audit Trail Write Failure
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-12                                                                              |
-| **Hazard**      | Engine audit log entry fails to write to Supabase                                    |
-| **Cause**       | Network connectivity loss; Supabase service outage; authentication expiry             |
-| **Effect**      | Gap in SaMD audit trail; computation not traceable for regulatory review              |
-| **Severity**    | 2                                                                                   |
-| **Likelihood**  | 3                                                                                   |
-| **Detection**   | 2                                                                                   |
-| **RPN**         | **12**                                                                               |
-| **Mitigation**  | (1) Audit logging is best-effort and non-blocking — engine result is still valid (REQ-03). (2) Failure logged via os.Logger for local device diagnostics. (3) Engine is deterministic: computation can be replayed from input hash + engine version. (4) Score persisted to SwiftData (LocalScore) with audit_log_id if available. (5) daily_phenomic_scores table provides secondary audit record. |
-| **Residual Risk** | Low. Deterministic engine enables replay-based auditing even when primary audit write fails. Non-blocking design ensures user experience is unaffected. |
-| **Traceability** | REQ-03; `Security/EngineAuditLogger.swift` |
-
-### HAZ-13: Incomplete Account Deletion
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-13                                                                              |
-| **Hazard**      | User requests account deletion but data persists in database or local storage         |
-| **Cause**       | Deletion RPC fails silently; local SwiftData not cleared; orphaned records in related tables |
-| **Effect**      | Regulatory violation (LGPD right to erasure); user trust breach                       |
-| **Severity**    | 3                                                                                   |
-| **Likelihood**  | 2                                                                                   |
-| **Detection**   | 3                                                                                   |
-| **RPN**         | **18**                                                                               |
-| **Mitigation**  | (1) Server-side `delete_my_account()` RPC performs soft-delete with 30-day retention hold (REQ-17). (2) Local SwiftData cleared on signOut: LocalScore, LocalProfile, LocalBiometrics deleted (REQ-18). (3) Keychain cleared via `AuraKeychain.deleteAll()`. (4) 30-day hold allows recovery from accidental deletion before permanent purge. (5) Cascading deletes configured in Supabase for related tables. |
-| **Residual Risk** | Low. Comprehensive deletion across all storage layers with safety hold period balances erasure completeness with recovery capability. |
-| **Traceability** | REQ-17, REQ-18; `ViewModels/AuthViewModel.swift:signOut()` |
-
-### HAZ-14: Wrong Age or Gender Input
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-14                                                                              |
-| **Hazard**      | User enters incorrect age or gender, affecting reference range selection              |
-| **Cause**       | Typo in age; user selects wrong gender; intentional misentry                         |
-| **Effect**      | Gender-specific reference ranges (WHR, HDL, ferritin, DHEA-S) applied incorrectly; score distorted |
-| **Severity**    | 3                                                                                   |
-| **Likelihood**  | 2                                                                                   |
-| **Detection**   | 3                                                                                   |
-| **RPN**         | **18**                                                                               |
-| **Mitigation**  | (1) Age validated against physiological range [18--120] in validateInput(); out-of-range clamped to bounds. (2) Questionnaire UI uses picker controls (not free text) for gender selection. (3) Profile screen allows users to review and correct demographics. (4) Gender-specific ranges use gradual normalization (not binary thresholds), reducing impact of misentry. |
-| **Residual Risk** | Low. Input validation and clamping prevent extreme values; gradual normalization reduces sensitivity to minor errors. |
-| **Traceability** | REQ-01; `Engine/PhenomicEngine.swift:validateInput()` |
-
-### HAZ-15: Device Clock Manipulation
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-15                                                                              |
-| **Hazard**      | User or malware manipulates device clock, corrupting temporal data                   |
-| **Cause**       | Manual clock change; timezone confusion; jailbroken device                           |
-| **Effect**      | Score timestamps incorrect; HealthKit data assigned to wrong dates; sync conflicts    |
-| **Severity**    | 2                                                                                   |
-| **Likelihood**  | 2                                                                                   |
-| **Detection**   | 3                                                                                   |
-| **RPN**         | **12**                                                                               |
-| **Mitigation**  | (1) Supabase uses server-side `now()` timestamps for all database writes. (2) Audit log timestamps are server-generated, not client-supplied. (3) HealthKit provides its own timestamps from Apple's time service. (4) SyncManager uses server timestamps for conflict resolution. |
-| **Residual Risk** | Very low. Server-side timestamps for all critical records eliminate client clock dependency. |
-| **Traceability** | REQ-03; `Security/EngineAuditLogger.swift`; `LocalData/SyncManager.swift` |
-
-### HAZ-16: Jailbroken Device Bypass
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-16                                                                              |
-| **Hazard**      | User runs app on jailbroken device, bypassing iOS security controls                  |
-| **Cause**       | Jailbroken iOS removes sandbox restrictions; Keychain may be accessible               |
-| **Effect**      | PHI exposure through Keychain extraction; biometric auth bypass                       |
-| **Severity**    | 4                                                                                   |
-| **Likelihood**  | 1                                                                                   |
-| **Detection**   | 2                                                                                   |
-| **RPN**         | **8**                                                                                |
-| **Mitigation**  | (1) App Attest validates device integrity (REQ-11). (2) Keychain uses `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — data does not migrate to backups (REQ-09). (3) NSFileProtectionComplete encrypts SwiftData store when device locked (REQ-16). (4) Certificate pinning operates independently of device integrity. |
-| **Residual Risk** | Low. App Attest provides attestation signal; Keychain and file protection provide defense even on compromised devices. |
-| **Traceability** | REQ-09, REQ-11, REQ-16; `Security/AppAttestManager.swift` |
-
-### HAZ-17: Concurrent Engine Computation Race Condition
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-17                                                                              |
-| **Hazard**      | Multiple simultaneous engine computations produce conflicting results                 |
-| **Cause**       | User triggers recompute while previous computation is in progress; background refresh overlaps manual refresh |
-| **Effect**      | Race condition may display intermediate or stale result                               |
-| **Severity**    | 2                                                                                   |
-| **Likelihood**  | 2                                                                                   |
-| **Detection**   | 3                                                                                   |
-| **RPN**         | **12**                                                                               |
-| **Mitigation**  | (1) PhenomicEngine.compute() is a pure static function with no mutable state. (2) PhenomicService is @MainActor, serializing state updates. (3) isLoading flag prevents UI-triggered concurrent computations. (4) Engine result is an immutable struct assigned atomically to @Published property. |
-| **Residual Risk** | Very low. Stateless engine and MainActor serialization eliminate race conditions by design. |
-| **Traceability** | REQ-02; `Engine/PhenomicEngine.swift`; `Services/PhenomicService.swift` |
-
-### HAZ-18: Remote Config Poisoning
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-18                                                                              |
-| **Hazard**      | Attacker modifies remote engine configuration to alter scoring behavior               |
-| **Cause**       | Compromised Supabase credentials; malicious config entry in engine_config table       |
-| **Effect**      | Engine produces systematically biased scores for all users                            |
-| **Severity**    | 5                                                                                   |
-| **Likelihood**  | 1                                                                                   |
-| **Detection**   | 2                                                                                   |
-| **RPN**         | **10**                                                                               |
-| **Mitigation**  | (1) Engine config fetched via RLS-protected table (only service role can write). (2) EngineConfigManager falls back to hardcoded .default config on fetch failure. (3) Config cached in UserDefaults; poisoned config replaced on next valid fetch. (4) Cross-validation catches score divergence caused by config mismatch. (5) Certificate pinning prevents MITM config injection. |
-| **Residual Risk** | Very low. RLS write protection and hardcoded fallback config provide defense-in-depth. |
-| **Traceability** | `Engine/Config/EngineConfigManager.swift`; REQ-07 |
-
-### HAZ-19: HealthKit Authorization Silently Revoked
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-19                                                                              |
-| **Hazard**      | User revokes HealthKit permissions in Settings without notifying the app              |
-| **Cause**       | iOS allows permission revocation at any time without app callback                    |
-| **Effect**      | App attempts HealthKit reads that silently return no data; score degrades without explanation |
-| **Severity**    | 2                                                                                   |
-| **Likelihood**  | 3                                                                                   |
-| **Detection**   | 2                                                                                   |
-| **RPN**         | **12**                                                                               |
-| **Mitigation**  | (1) HealthKitManager checks authorization status before each read. (2) Ghost Mode activates automatically when wearable data is nil. (3) Precision indicator drops to reflect missing wearable data. (4) Wearables connection screen shows current authorization state. |
-| **Residual Risk** | Low. Graceful degradation via Ghost Mode ensures scores remain conservative. |
-| **Traceability** | REQ-13; `Services/HealthKitManager.swift` |
-
-### HAZ-20: Floating-Point Precision Loss in Score Calculation
-
-| Field           | Value                                                                               |
-|-----------------|-------------------------------------------------------------------------------------|
-| **Hazard ID**   | HAZ-20                                                                              |
-| **Hazard**      | Floating-point arithmetic differences between Swift Double and TypeScript Number produce score divergence |
-| **Cause**       | IEEE 754 rounding differences; different compiler optimizations; intermediate precision loss |
-| **Effect**      | Cross-validation delta exceeds threshold; audit trail inconsistency                   |
-| **Severity**    | 2                                                                                   |
-| **Likelihood**  | 2                                                                                   |
-| **Detection**   | 1                                                                                   |
-| **RPN**         | **4**                                                                                |
-| **Mitigation**  | (1) Cross-validation tolerance of delta <= 2 accounts for floating-point differences. (2) Both engines use IEEE 754 64-bit doubles. (3) Final score rounded to integer (0--100), eliminating sub-integer precision differences. (4) Parity test vectors validate exact-match on integer outputs. |
-| **Residual Risk** | Very low. Integer rounding of final score eliminates floating-point precision as a practical concern. |
-| **Traceability** | REQ-04; `Engine/PhenomicEngine.swift:compute()` |
+**RPN = Severidade × Probabilidade × Detecção**
 
 ---
 
-## 3. Risk Summary Matrix
+## 2. Escalas de Avaliação
 
-| RPN Range     | Count | Hazard IDs                                               |
-|---------------|-------|----------------------------------------------------------|
-| 1--15 (Acceptable)  | 10    | HAZ-03, HAZ-04, HAZ-08, HAZ-09, HAZ-12, HAZ-15, HAZ-16, HAZ-17, HAZ-18, HAZ-20 |
-| 16--39 (Low)        | 8     | HAZ-01, HAZ-05, HAZ-06, HAZ-07, HAZ-10, HAZ-11, HAZ-13, HAZ-14 |
-| 40--74 (Medium)     | 2     | HAZ-02, HAZ-19                                            |
-| 75--125 (High)      | 0     | None                                                      |
+### 2.1 Severidade (S)
 
-**Overall Risk Assessment:** All identified hazards have been mitigated to acceptable or low residual risk levels. The two medium-risk items (HAZ-02: user behavior, HAZ-19: HealthKit revocation) are inherent to the product category and are managed through disclaimers and graceful degradation respectively.
+| **Nível** | **Classificação** | **Descrição** |
+|---|---|---|
+| 1 | Negligível | Nenhum impacto na saúde ou segurança do utilizador. |
+| 2 | Menor | Inconveniência temporária; sem impacto clínico mensurável. |
+| 3 | Moderado | Decisão clínica subótima; pode requerer intervenção médica de rotina. |
+| 4 | Grave | Dano significativo à saúde; potencial hospitalização. |
+| 5 | Catastrófico | Risco de vida; morte ou dano permanente irreversível. |
+
+### 2.2 Probabilidade (P)
+
+| **Nível** | **Classificação** | **Descrição** |
+|---|---|---|
+| 1 | Raro | < 1 em 10.000 utilizações. |
+| 2 | Improvável | 1 em 1.000 a 10.000 utilizações. |
+| 3 | Ocasional | 1 em 100 a 1.000 utilizações. |
+| 4 | Provável | 1 em 10 a 100 utilizações. |
+| 5 | Frequente | > 1 em 10 utilizações. |
+
+### 2.3 Detecção (D)
+
+| **Nível** | **Classificação** | **Descrição** |
+|---|---|---|
+| 1 | Quase certo | Controle automatizado detecta a falha antes de qualquer impacto. |
+| 2 | Alta | Controle automatizado presente, com redundância limitada. |
+| 3 | Moderada | Detecção dependente de revisão manual ou queixa do utilizador. |
+| 4 | Baixa | Detecção apenas por auditoria periódica. |
+| 5 | Impossível | Nenhum mecanismo de detecção implementado. |
 
 ---
 
-## 4. Benefit-Risk Analysis
+## 3. Tabela de Análise de Perigos
 
-The Aura Medical application provides meaningful wellness monitoring benefits (trend tracking, data aggregation, health awareness) that outweigh the identified residual risks, all of which are non-serious and mitigated through multiple design controls. The product does not claim diagnostic capability, does not control treatment, and does not replace medical professionals. The residual risk profile is consistent with IEC 62304 Class B and IMDRF Category II classification.
+### HAZ-01: Status Falsamente Saudável para Paciente Clinicamente Comprometido
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-01 |
+| **Perigo** | O avaliador binário categoriza um domínio como "Saudável" apesar de o paciente apresentar uma condição subjacente grave. |
+| **Causa** | Dados laboratoriais ausentes; utilizador não importou exames recentes; dados de wearable insuficientes para acionar a flag do domínio. |
+| **Efeito** | Utilizador é falsamente tranquilizado e pode atrasar a procura por cuidados médicos necessários. |
+| **Severidade** | 5 |
+| **Probabilidade** | 3 |
+| **Detecção** | 2 |
+| **RPN** | **30** |
+| **Mitigação** | (1) **Verificação de Itens Mínimos:** `DomainEvaluator` exige pelo menos 3 itens respondidos por domínio para gerar um status; caso contrário, retorna um prompt conservador solicitando mais dados (Ghost Mode). (2) **Data Caps:** Biomarcadores críticos (ex: ApoB > 90) acionam imediatamente a flag do domínio, independentemente de quaisquer outros inputs positivos. (3) **Indicador de Precisão:** Exibe a percentagem de completude dos dados (REQ-29). |
+| **Risco Residual** | Baixo. A natureza determinística das flags binárias impede que um biomarcador crítico seja "diluído" por respostas positivas de estilo de vida. |
+| **Rastreabilidade** | REQ-01, REQ-02, REQ-12, REQ-13, REQ-15, REQ-25, REQ-29, REQ-34 |
+
+### HAZ-02: IA Generativa Alucina Diagnóstico Clínico ou Prescrição
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-02 |
+| **Perigo** | O LLM da Aura+ fornece um diagnóstico médico, prescreve medicação por nome comercial ou dá aconselhamento de saúde perigoso. |
+| **Causa** | Natureza probabilística inerente aos Large Language Models (LLMs); prompts adversariais do utilizador (jailbreak). |
+| **Efeito** | Automedicação inadequada; responsabilidade legal por exercício ilegal da medicina (Ato Médico). |
+| **Severidade** | 5 |
+| **Probabilidade** | 3 |
+| **Detecção** | 2 |
+| **RPN** | **30** |
+| **Mitigação** | (1) **Guardrails do System Prompt:** `system-prompt.ts` proíbe explícita e estritamente diagnosticar ou prescrever. (2) **Âncoras Estáticas:** Protocolos clínicos NÃO são gerados pela IA; são buscados de um `PROTOCOLS_CATALOG` codificado com IDs específicos. (3) **Disclaimer Obrigatório:** Disclaimer-mãe injetado automaticamente em cada sessão de chat. |
+| **Risco Residual** | Baixo. A restrição da IA a emitir IDs de `protocolCard` pré-definidos elimina o risco de protocolos clínicos alucinados. |
+| **Rastreabilidade** | REQ-04, REQ-33, REQ-36, REQ-37, REQ-38 |
+
+### HAZ-03: Falha na Detecção de Crise Aguda (Falso Negativo)
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-03 |
+| **Perigo** | Utilizador expressa ideação suicida ou sintomas físicos agudos no chat e o sistema responde conversacionalmente em vez de escalonar. |
+| **Causa** | Utilizador emprega gíria regional não capturada pelo regex; LLM falha em interpretar a gravidade do input. |
+| **Efeito** | Paciente em crise aguda não recebe instruções de emergência; potencial autolesão ou morte. |
+| **Severidade** | 5 |
+| **Probabilidade** | 2 |
+| **Detecção** | 2 |
+| **RPN** | **20** |
+| **Mitigação** | (1) **Gate de Regex Determinístico:** `isCrisisInput` bypassa o LLM inteiramente ao detectar padrões, forçando um bloco de `escalation` com CVV 188 / SAMU 192. (2) **Flag de Segurança do Snapshot:** Se o item 9 do PHQ-9 (ideação) for >= 1, `has_active_safety_alert` é definido como verdadeiro por 90 dias, injetando uma restrição estrita de emergência diretamente no system prompt do LLM para TODOS os turnos subsequentes. |
+| **Risco Residual** | Aceitável. A combinação de regex pré-LLM e injeção de prompt pós-LLM fornece uma rede de segurança altamente redundante. |
+| **Rastreabilidade** | REQ-04, REQ-34 |
+
+### HAZ-04: Execução de Protocolo Clínico sem Validação Médica (Bypass do Doctor-in-the-Loop)
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-04 |
+| **Perigo** | Utilizador acessa e executa um protocolo de intervenção clínica completo sem validação de um médico. |
+| **Causa** | Bug de UI expondo o payload completo do protocolo; LLM alucina `locked: false` no output XML. |
+| **Efeito** | Utilizador realiza uma intervenção (ex: alteração dietética, cardio Zone 2 intenso) contraindicada para o seu contexto clínico oculto. |
+| **Severidade** | 4 |
+| **Probabilidade** | 2 |
+| **Detecção** | 1 |
+| **RPN** | **8** |
+| **Mitigação** | (1) **Hard Gate do Backend:** `checkAuraPlusGate` bloqueia fisicamente o acesso se `user_active_protocols.unlocked_at` for nulo. (2) **Restrição de Prompt:** O LLM é estruturalmente forçado a emitir `locked: true` em todos os JSONs de `<protocolCard>` durante a Fase 1. |
+| **Risco Residual** | Aceitável. Validação multicamada no backend impede que a UI renderize protocolos acionáveis sem aprovação médica. |
+| **Rastreabilidade** | REQ-36, REQ-37 |
+
+### HAZ-05: PHI Exposta a LLM de Terceiros sem Consentimento
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-05 |
+| **Perigo** | Informações de Saúde Protegidas (PHI) são enviadas à API da Anthropic sem consentimento explícito e juridicamente vinculante do utilizador. |
+| **Causa** | Diálogo de consentimento ausente; dependência de termos de serviço genéricos em vez de opt-in explícito (LGPD Art. 11). |
+| **Efeito** | Violação regulatória massiva (LGPD); perda de confiança do utilizador; penalidades legais severas. |
+| **Severidade** | 5 |
+| **Probabilidade** | 2 |
+| **Detecção** | 1 |
+| **RPN** | **10** |
+| **Mitigação** | (1) **Gate de BD Explícito:** `hasAuraPlusLlmConsent` verifica a tabela `user_consents` em busca de um grant `aura_plus_llm` auditado e com timestamp (design fail-closed). (2) **Sem Log Bruto:** `ai_audit_log` faz hash tanto do prompt quanto da resposta (SHA-256) para manter uma trilha de auditoria sem armazenar PHI bruta. |
+| **Risco Residual** | Aceitável. O backend impede fisicamente a chamada à API se o registro explícito de consentimento estiver ausente. |
+| **Rastreabilidade** | REQ-03, REQ-19, REQ-35 |
+
+### HAZ-06: Dados Biométricos Corrompidos em Trânsito
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-06 |
+| **Perigo** | Dados de saúde interceptados ou corrompidos durante a transmissão para o Supabase. |
+| **Causa** | Ataque Man-in-the-Middle (MITM); downgrade de TLS em Wi-Fi público. |
+| **Efeito** | PHI exposta; dados corrompidos produzem avaliação clínica incorreta. |
+| **Severidade** | 4 |
+| **Probabilidade** | 1 |
+| **Detecção** | 1 |
+| **RPN** | **4** |
+| **Mitigação** | (1) Certificate Pinning via hashes SPKI SHA-256 com política fail-closed (REQ-07). (2) Conexão do backend impõe estritamente `URLSession.pinned`. |
+| **Risco Residual** | Aceitável. |
+| **Rastreabilidade** | REQ-02, REQ-07, REQ-10 |
+
+### HAZ-07: Sequestro de Sessão
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-07 |
+| **Perigo** | Atacante obtém acesso à sessão autenticada do utilizador. |
+| **Causa** | Token JWT roubado; dispositivo compartilhado sem bloqueio de tela. |
+| **Efeito** | Acesso não autorizado aos dados de saúde e conta do utilizador. |
+| **Severidade** | 4 |
+| **Probabilidade** | 2 |
+| **Detecção** | 2 |
+| **RPN** | **16** |
+| **Mitigação** | (1) Autenticação biométrica obrigatória (REQ-06). (2) Timeout de inatividade de 30 minutos (REQ-08). (3) Blur de PHI em background (REQ-05). (4) JWT armazenado em Keychain com `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` (REQ-09). |
+| **Risco Residual** | Baixo. |
+| **Rastreabilidade** | REQ-05, REQ-06, REQ-08, REQ-09, REQ-31 |
+
+### HAZ-08: Violação do Banco de Dados com Exposição de PHI
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-08 |
+| **Perigo** | Acesso não autorizado ao banco de dados Supabase expõe registros de saúde dos utilizadores. |
+| **Causa** | Regras de BD mal configuradas; chave de serviço comprometida. |
+| **Efeito** | Exposição massiva de PHI; violação regulatória. |
+| **Severidade** | 5 |
+| **Probabilidade** | 1 |
+| **Detecção** | 2 |
+| **RPN** | **10** |
+| **Mitigação** | (1) Row-Level Security (RLS) rigorosamente aplicada em todas as tabelas, vinculada ao JWT `auth.uid()`. (2) Criptografia em repouso. (3) Chave de serviço nunca exposta a apps clientes. |
+| **Risco Residual** | Aceitável. |
+| **Rastreabilidade** | REQ-01, REQ-16, REQ-31 |
+
+### HAZ-09: Entrada de Sexo Biológico Incorreto pelo Utilizador
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-09 |
+| **Perigo** | Utilizador insere sexo biológico incorreto, afetando faixas de referência laboratorial. |
+| **Causa** | Erro de digitação ou entrada intencional incorreta. |
+| **Efeito** | Faixas de referência específicas por sexo (ex: Ácido Úrico, HDL) aplicadas incorretamente; avaliação binária distorcida. |
+| **Severidade** | 3 |
+| **Probabilidade** | 2 |
+| **Detecção** | 3 |
+| **RPN** | **18** |
+| **Mitigação** | (1) `DomainEvaluator` condicionaliza estritamente as verificações de limiares com base em `answers["biological_sex"]`. (2) Tela de perfil permite revisão e correção a qualquer momento. |
+| **Risco Residual** | Baixo. |
+| **Rastreabilidade** | REQ-24 |
+
+### HAZ-10: Acesso Físico Não Autorizado ao Dispositivo
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-10 |
+| **Perigo** | Pessoa não autorizada acessa fisicamente o dispositivo iOS e visualiza dados de saúde protegidos. |
+| **Causa** | Dispositivo perdido ou roubado; dispositivo compartilhado em ambiente doméstico sem bloqueio de tela. |
+| **Efeito** | Exposição de dados de saúde sensíveis; violação de privacidade. |
+| **Severidade** | 4 |
+| **Probabilidade** | 2 |
+| **Detecção** | 2 |
+| **RPN** | **16** |
+| **Mitigação** | (1) Autenticação biométrica (Face ID / Touch ID) obrigatória para abrir o app (REQ-06). (2) App Attest garante integridade do dispositivo (REQ-11). (3) Keychain com acesso restrito a `WhenUnlockedThisDeviceOnly` (REQ-09). (4) PHI blur ativado em multitarefa (REQ-05). (5) Timeout de inatividade de 30 minutos (REQ-08). |
+| **Risco Residual** | Baixo. Defesa em profundidade com 5 controles independentes. |
+| **Rastreabilidade** | REQ-05, REQ-06, REQ-08, REQ-09, REQ-11, REQ-31 |
+
+### HAZ-11: Avaliação Clínica Baseada em Dados Insuficientes
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-11 |
+| **Perigo** | O sistema emite uma avaliação de domínio com base em dados incompletos, levando a uma leitura imprecisa do estado de saúde. |
+| **Causa** | Utilizador não conectou wearable; poucos itens preenchidos no questionário; ausência de dados laboratoriais. |
+| **Efeito** | Avaliação de risco imprecisa; falsa confiança em um status parcialmente avaliado. |
+| **Severidade** | 3 |
+| **Probabilidade** | 3 |
+| **Detecção** | 2 |
+| **RPN** | **18** |
+| **Mitigação** | (1) **Ghost Mode:** Domínios com menos de 3 itens retornam `level: nil` sem gerar um status (REQ-13). (2) **Indicador de Confiança:** Badge visual mostra disponibilidade de wearables, instrumentos validados e labs (REQ-29). (3) Instrumentos clínicos validados (PHQ-9, GAD-7, PSQI, FINDRISC) substituem dados de baixa confiança (REQ-14). |
+| **Risco Residual** | Baixo. O Ghost Mode impede a emissão de um status com base em dados insuficientes. |
+| **Rastreabilidade** | REQ-10, REQ-13, REQ-14, REQ-28, REQ-29 |
+
+### HAZ-12: Trilha de Auditoria de IA Incompleta ou Ausente
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-12 |
+| **Perigo** | Uma interação de IA não é registrada no log de auditoria, comprometendo a rastreabilidade regulatória (CFM 2.314 Art. 5). |
+| **Causa** | Falha no Supabase durante a gravação do log; timeout de rede; erro silencioso no pipeline de logging. |
+| **Efeito** | Impossibilidade de auditar uma decisão de suporte clínico; não-conformidade regulatória. |
+| **Severidade** | 4 |
+| **Probabilidade** | 2 |
+| **Detecção** | 2 |
+| **RPN** | **16** |
+| **Mitigação** | (1) **Log Fail-Soft:** `logAiInteraction` não bloqueia a resposta ao utilizador em caso de falha, mas registra o erro internamente para retry. (2) Hash SHA-256 de prompt e resposta garante integridade sem armazenar PHI bruta (REQ-03). (3) Versão do modelo fixada em snapshot datado (REQ-21). |
+| **Risco Residual** | Baixo. Design fail-soft maximiza a taxa de sucesso de logging sem impactar a experiência do utilizador. |
+| **Rastreabilidade** | REQ-03, REQ-21 |
+
+### HAZ-13: Retenção Indevida de Dados Pessoais Após Revogação
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-13 |
+| **Perigo** | Dados pessoais de saúde permanecem armazenados localmente ou no servidor após o utilizador revogar o consentimento, solicitar exclusão ou efetuar logout. |
+| **Causa** | Falha no processo de exclusão em cascata; dados órfãos em cache SwiftData local; consentimento revogado mas dados persistentes. |
+| **Efeito** | Violação da LGPD (direito ao esquecimento); exposição de PHI a utilizadores subsequentes do dispositivo. |
+| **Severidade** | 4 |
+| **Probabilidade** | 1 |
+| **Detecção** | 2 |
+| **RPN** | **8** |
+| **Mitigação** | (1) **Exclusão de Conta:** RPC `delete_my_account()` realiza soft-delete em cascata em todas as tabelas com retenção de 30 dias (REQ-17). (2) **Higiene de Logout:** `signOut()` apaga modelos SwiftData, entradas de Keychain e estado em memória (REQ-18). (3) **Consent Gate fail-closed:** `hasAuraPlusLlmConsent` impede processamento se o consentimento for revogado (REQ-35). |
+| **Risco Residual** | Aceitável. Limpeza em 3 camadas (servidor, persistência local, memória) garante eliminação completa. |
+| **Rastreabilidade** | REQ-17, REQ-18, REQ-35 |
+
+### HAZ-14: Aplicação Incorreta de Limiares de Referência por Sexo no Código
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-14 |
+| **Perigo** | O código do avaliador aplica o limiar de referência do sexo errado para um biomarcador sex-specific, mesmo quando o input do utilizador está correto. |
+| **Causa** | Bug na lógica de condicionalização; novo biomarcador adicionado sem branch de sexo; regressão após refatoração. |
+| **Efeito** | Limiar incorreto aplicado (ex: Ácido Úrico masculino aplicado a paciente feminino), gerando avaliação distorcida. |
+| **Severidade** | 3 |
+| **Probabilidade** | 2 |
+| **Detecção** | 2 |
+| **RPN** | **12** |
+| **Mitigação** | (1) Testes unitários obrigatórios para ambos os sexos em cada biomarcador sex-specific (EV-04 em VERIFICATION.md). (2) Revisão clínica pelo RT obrigatória para adição de novos biomarcadores (CONFIG_MGMT.md Seção 4.2). |
+| **Risco Residual** | Aceitável. Cobertura de teste automatizada previne regressões. |
+| **Rastreabilidade** | REQ-24 |
+
+### HAZ-15: Comprometimento de Chaves Criptográficas do Dispositivo
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-15 |
+| **Perigo** | Chaves criptográficas armazenadas no dispositivo (tokens, attestation keys) são extraídas ou comprometidas. |
+| **Causa** | Backup não protegido do Keychain; migração de dispositivo com transferência indevida; jailbreak do iOS. |
+| **Efeito** | Acesso não autorizado a APIs protegidas; falsificação de identidade do dispositivo. |
+| **Severidade** | 4 |
+| **Probabilidade** | 1 |
+| **Detecção** | 2 |
+| **RPN** | **8** |
+| **Mitigação** | (1) Keychain configurado com `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — dados não migram para backups nem novos dispositivos (REQ-09). (2) App Attest gera chave vinculada ao hardware (REQ-11). (3) SwiftData protegido com `NSFileProtectionComplete` (REQ-16). |
+| **Risco Residual** | Aceitável. Vínculo ao hardware impede extração das chaves. |
+| **Rastreabilidade** | REQ-09, REQ-11, REQ-16 |
+
+### HAZ-16: Decisão Clínica Baseada em Dados Desatualizados (Cache Stale)
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-16 |
+| **Perigo** | O LLM recebe um snapshot de dados clínicos desatualizado e gera recomendações baseadas em um estado de saúde que não é mais o atual. |
+| **Causa** | TTL do cache expirado sem renovação; falha na re-query ao Supabase; utilizador atualizou dados durante uma sessão ativa. |
+| **Efeito** | Recomendação de IA desalinhada com o estado atual de saúde do utilizador. |
+| **Severidade** | 3 |
+| **Probabilidade** | 2 |
+| **Detecção** | 2 |
+| **RPN** | **12** |
+| **Mitigação** | (1) TTL de 6 horas no `health_snapshot_cache` com rebuild automático de 5 queries paralelas ao Supabase em caso de miss (REQ-32). (2) Flag `has_active_safety_alert` propagada do snapshot para o system prompt, garantindo que alertas de segurança ativos nunca expirem do contexto da IA prematuramente. |
+| **Risco Residual** | Aceitável. TTL de 6 horas é conservador para dados que mudam na escala de dias/semanas. |
+| **Rastreabilidade** | REQ-32 |
+
+### HAZ-17: Falha na Ingestão de Dados de Wearables Externos
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Perigo** | HAZ-17 |
+| **Perigo** | Dados de um wearable externo (Garmin, Oura, Whoop) falham ao serem ingeridos ou são ingeridos com formato corrompido. |
+| **Causa** | API do fabricante indisponível; formato de dado incompatível; bundle identifier desconhecido. |
+| **Efeito** | Avaliação incompleta dos domínios de Sono e Movimento; utilizador não recebe feedback sobre domínios dependentes de wearable. |
+| **Severidade** | 3 |
+| **Probabilidade** | 2 |
+| **Detecção** | 2 |
+| **RPN** | **12** |
+| **Mitigação** | (1) `HealthSource` enum valida bundle identifiers conhecidos antes da ingestão (REQ-15). (2) `HealthKitSyncService` realiza sync em background com tratamento gracioso de erros (REQ-28). (3) Ghost Mode previne avaliação de domínios sem dados suficientes (REQ-13 via HAZ-11). |
+| **Risco Residual** | Aceitável. Falha na ingestão resulta em domínio sem status (Ghost Mode), não em avaliação incorreta. |
+| **Rastreabilidade** | REQ-15, REQ-28 |
 
 ---
 
-**Approval Signatures:**
+## 4. Matriz Resumo de Risco
 
-| Role                    | Name | Date | Signature |
-|-------------------------|------|------|-----------|
-| Risk Manager            |      |      |           |
-| Quality Manager         |      |      |           |
-| Clinical Expert         |      |      |           |
+| **Faixa de RPN** | **Classificação** | **Quantidade** | **IDs dos Perigos** |
+|---|---|---|---|
+| **1–15 (Aceitável)** | Risco Aceitável | 9 | HAZ-04, HAZ-05, HAZ-06, HAZ-08, HAZ-13, HAZ-14, HAZ-15, HAZ-16, HAZ-17 |
+| **16–39 (Baixo)** | Risco Baixo | 8 | HAZ-01, HAZ-02, HAZ-03, HAZ-07, HAZ-09, HAZ-10, HAZ-11, HAZ-12 |
+| **40–74 (Médio)** | Risco Médio | 0 | Nenhum |
+| **75–125 (Alto)** | Risco Alto | 0 | Nenhum |
+
+**Avaliação Geral de Risco:** Ao migrar da antiga engine estatística (regressão linear em TypeScript) para o **Modelo de Limiares Binários de Seeman** (avaliador determinístico em Swift), o sistema eliminou todos os riscos de divergência matemática (erros de ponto flutuante, pesos dinâmicos). A introdução de LLMs criou novos riscos (Alucinação, Negligência de Crise), que foram mitigados com sucesso para os níveis "Baixo" ou "Aceitável" através de restrições arquiteturais estritas (bloqueios Doctor-in-the-Loop, gates de regex pré-LLM e trilhas de auditoria com hash criptográfico).
+
+---
+
+## 5. Análise Benefício-Risco
+
+A aplicação Aura Medical (v1.0.0) fornece capacidades significativas de monitorização preventiva de saúde e suporte à decisão clínica (CDSS). A implementação de sobreposições de segurança determinísticas (`isCrisisInput`) e bloqueios rígidos de backend (`checkAuraPlusGate`) garante que os benefícios da IA conversacional na educação em saúde superam significativamente os riscos residuais.
+
+O produto **não diagnostica** e **não executa tratamentos de forma autônoma**. O perfil de risco residual é totalmente consistente com as classificações IEC 62304 Classe B e IMDRF Categoria II.
+
+---
+
+**Assinaturas de Aprovação:**
+
+| **Função** | **Nome** | **Data** | **Assinatura** |
+|---|---|---|---|
+| Gestor de Risco (RT) | Dr. Alexandre Teixeira de Almeida | | |
+| Gestor de Qualidade | Frederico | | |
+| Líder de Desenvolvimento | Arthur Teixeira de Almeida | | |

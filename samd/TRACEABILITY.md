@@ -1,547 +1,550 @@
-# Requirements Traceability Matrix
+# Matriz de Rastreabilidade de Requisitos
 
-**Document ID:** TM-001
-**Revision:** 1.0
-**Date:** 2026-03-27
-**Product:** Aura Medical iOS Application
-**Standard:** IEC 62304:2006+AMD1:2015 Section 5.1.1 (Software development planning)
+**ID do Documento:** TM-001
 
----
+**Revisão:** 3.0 (v1.0.0 Stable Release)
 
-## 1. Purpose
+**Data:** 2026-04-10
 
-This document establishes bidirectional traceability between software requirements, design specifications, source code implementations, test procedures, and verification evidence. Each requirement is linked to its corresponding hazard(s) from RISK_ANALYSIS.md where applicable.
+**Produto:** Aura Medical iOS Application & Aura+ Backend
 
-## 2. Conventions
-
-- **Source paths** are relative to the repository root (`aura-ios/`).
-- **Test status** indicates current verification state: Implemented, Planned, or Pending.
-- **Hazard references** link to RISK_ANALYSIS.md identifiers.
+**Norma:** IEC 62304:2006+AMD1:2015 Seção 5.1.1 (Planeamento do desenvolvimento de software)
 
 ---
 
-## 3. Traceability Table
+## 1. Propósito
 
-### REQ-01: Input Validation
+Este documento estabelece a rastreabilidade bidirecional entre requisitos de software, especificações de design, implementações no código-fonte, procedimentos de teste e evidências de verificação. Cada requisito é vinculado ao(s) perigo(s) correspondente(s) definidos em `RISK_ANALYSIS.md` (RA-001 Rev 3.0) onde aplicável.
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-01                                                                               |
-| **Description**    | All numeric engine inputs must be validated against physiological ranges. Values outside bounds are rejected (set to nil) and logged. Glucose values > 600 mg/dL must be rejected. |
-| **Design**         | `PhysiologicalRanges` struct in `EngineConfig` defines min/max for every biomarker. `validateInput()` checks each field and returns `ValidationResult` with rejected list. |
-| **Source Code**    | `Engine/PhenomicEngine.swift:validateInput()` (lines 48--102), `Engine/EngineConfig.swift:PhysiologicalRanges` |
-| **Test**           | Parity test vectors include boundary cases; unit tests for each biomarker range       |
-| **Evidence**       | `phenomic-engine/parity-vectors.json` vector cases with out-of-range inputs           |
-| **Hazard Link**    | HAZ-01, HAZ-08, HAZ-14                                                                |
-| **Status**         | Implemented                                                                           |
+## 2. Convenções
 
-### REQ-02: Score Range 0--100
+- **Caminhos de código-fonte** são relativos às raízes dos repositórios (`aura-ios/` e `aura-backend/`).
+- **Status de teste** indica o estado atual de verificação: Implementado, Planeado ou Pendente.
+- **Referências de perigo** vinculam-se aos identificadores HAZ-01 a HAZ-17 definidos em `RISK_ANALYSIS.md`.
+- **IDs consolidados:** Os IDs REQ-22, REQ-23, REQ-26, REQ-27 e REQ-30 foram consolidados em outros requisitos durante a migração arquitetural para a v1.0.0 e não são mais utilizados.
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-02                                                                               |
-| **Description**    | The Phenomic Engine must produce a `totalScore` integer in the range [0, 100]. Domain scores (slices) must each be in [0, 100]. |
-| **Design**         | `PhenomicResult.totalScore` is computed as weighted average of domain scores, clamped to [0, 100]. Each slice score is independently bounded. |
-| **Source Code**    | `Engine/PhenomicEngine.swift:compute()` -- final score clamping and rounding          |
-| **Test**           | All 8 parity test vectors verify totalScore in [0, 100]; edge case vectors at boundaries |
-| **Evidence**       | `phenomic-engine/parity-vectors.json`                                                 |
-| **Hazard Link**    | HAZ-06, HAZ-17                                                                        |
-| **Status**         | Implemented                                                                           |
+---
 
-### REQ-03: SaMD Audit Trail
+## 3. Tabela de Rastreabilidade
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-03                                                                               |
-| **Description**    | Every engine computation must be logged to `ai_audit_log` with: user ID, input hash (SHA-256), output summary, engine version, processing time, confidence score, app version, and device ID. Logging must be best-effort and non-blocking. |
-| **Design**         | `EngineAuditLogger` actor writes to Supabase `ai_audit_log` table. Input is hashed with SHA-256 (no raw PHI stored). Failures logged locally but do not block engine result. |
-| **Source Code**    | `AuraMedical/Security/EngineAuditLogger.swift` -- `log()` method, `hashInput()`, `buildInputSummary()`, `buildOutputSummary()` |
-| **Test**           | Integration test: verify audit row created after computation; verify non-blocking on network failure |
-| **Evidence**       | `ai_audit_log` table in Supabase project `dhteseqmrgvhnuowgblp`                      |
-| **Hazard Link**    | HAZ-12, HAZ-15                                                                        |
-| **Status**         | Implemented                                                                           |
+### REQ-01: Validação de Inputs e Limites Fisiológicos
 
-### REQ-04: Cross-Validation Swift/TS
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-01 |
+| **Descrição** | Todos os inputs numéricos (biomarcadores, wearables) devem ser validados contra limites fisiológicos. Valores extremos devem ser sinalizados ou rejeitados para impedir que dados corrompidos distorçam a avaliação clínica. |
+| **Design** | `BiomarkerContent` define explicações clínicas e limiares. `DomainEvaluator` verifica limites rígidos específicos (ex: ApoB > 90, Glicose >= 100) antes de sinalizar um item. |
+| **Código-Fonte** | `AuraMedical/DomainEvaluator.swift:evaluateDomain()`, `AuraMedical/BiomarkerContent.swift` |
+| **Teste** | Vetores de teste com inputs fora dos limites; testes unitários para cada verificação de limiar de biomarcador. |
+| **Evidência** | Logs de testes unitários verificando que entradas extremas são tratadas sem crash ou falsa tranquilização. |
+| **Vínculo de Perigo** | HAZ-01, HAZ-08 |
+| **Status** | Implementado |
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-04                                                                               |
-| **Description**    | Every iOS engine computation must be sent to the backend for recomputation by the canonical TypeScript engine. Score delta must be <= 2 points. Discrepancies must be logged. |
-| **Design**         | `PhenomicService.sendBackendValidation()` fires detached Task to `AuraBackendClient.validateEngine()`. Backend endpoint `/api/engine/validate` recomputes and compares. |
-| **Source Code**    | `AuraMedical/Services/PhenomicService.swift:sendBackendValidation()`, `AuraMedical/Services/AuraBackendClient.swift:validateEngine()` |
-| **Test**           | Parity test vectors run on both engines; backend integration test for /api/engine/validate |
-| **Evidence**       | Backend logs cross-validation results; `EngineValidationResponse` includes `delta` field |
-| **Hazard Link**    | HAZ-04, HAZ-20                                                                        |
-| **Status**         | Implemented                                                                           |
+### REQ-02: Avaliação Binária de Cinco Domínios (Modelo de Seeman)
 
-### REQ-05: PHI Protection on Background
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-02 |
+| **Descrição** | O sistema deve avaliar exatamente cinco domínios de saúde: metabólico, cardiovascular, sono, nervoso (mente) e movimento, utilizando um verificador de limiares binários (0 = saudável, 1 = sinalizado) em vez de regressões ponderadas. |
+| **Design** | `DomainEvaluator.evaluateDomain` mapeia perguntas e biomarcadores específicos a domínios. Se `value >= threshold`, o item é adicionado ao array `flaggedItems`. |
+| **Código-Fonte** | `AuraMedical/DomainEvaluator.swift:isItemFlagged()`, `AuraMedical/DomainEvaluator.swift:domainQuestions` |
+| **Teste** | Testes unitários mapeando outputs de questionários para contagens corretas de flags por domínio. |
+| **Evidência** | Vetores de avaliação verificando que exatamente cinco objetos `DomainStatus` são retornados. |
+| **Vínculo de Perigo** | HAZ-01, HAZ-06 |
+| **Status** | Implementado |
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-05                                                                               |
-| **Description**    | All screens displaying PHI must apply a 30-radius Gaussian blur when the app enters background, is being screen-recorded, or is being screen-captured. |
-| **Design**         | `PHIProtectionModifier` observes `scenePhase` and `UIScreen.capturedDidChangeNotification`. Applies blur when `scenePhase != .active` or `isCaptured == true`. |
-| **Source Code**    | `AuraMedical/Security/PHIProtectionModifier.swift` -- `.phiProtected()` view modifier  |
-| **Test**           | Manual QA: verify blur on app switch, screen recording, and screenshot                |
-| **Evidence**       | Applied to BioHubView, DomainDetailView, PersonalDataView, ScoreView                 |
-| **Hazard Link**    | HAZ-10                                                                                |
-| **Status**         | Implemented                                                                           |
+### REQ-03: Trilha de Auditoria de IA para SaMD (CFM 2.314)
 
-### REQ-06: Biometric Authentication
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-03 |
+| **Descrição** | Toda computação de IA (chat ou opener) deve ser registrada para auditabilidade regulatória (CFM 2.314 Art. 5). O log deve incluir ID do utilizador, ID da sessão, versão do modelo e hashes SHA-256 do prompt e da resposta exatos (compatível com LGPD). |
+| **Design** | `logAiInteraction` insere registros em `ai_audit_log` usando abordagem fail-soft para evitar bloqueio da resposta ao utilizador. Prompts reais são hashados com `crypto.createHash('sha256')`. |
+| **Código-Fonte** | `aura-backend/src/health/aura-plus/audit.ts`, `aura-backend/src/health/aura-plus/chat.ts` |
+| **Teste** | Teste de integração: verificar row criada após interação com LLM; verificar não-bloqueio em timeout do Supabase. |
+| **Evidência** | Tabela `ai_audit_log` no Supabase. |
+| **Vínculo de Perigo** | HAZ-05, HAZ-12 |
+| **Status** | Implementado |
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-06                                                                               |
-| **Description**    | When enabled by the user, Face ID / Touch ID must be required to access the app. Falls back to device passcode. Authentication state stored in Keychain (not UserDefaults). |
-| **Design**         | `BiometricAuthManager` (@Observable) uses `LAContext.evaluatePolicy(.deviceOwnerAuthentication)`. Enable/disable persisted in Keychain via `AuraKeychain`. |
-| **Source Code**    | `AuraMedical/Security/BiometricAuthManager.swift` -- `authenticate()`, `isEnabled` property |
-| **Test**           | Manual QA: enable biometric lock, verify lock screen appears on foreground            |
-| **Evidence**       | Keychain entry `biometricAuth.enabled`                                                |
-| **Hazard Link**    | HAZ-10                                                                                |
-| **Status**         | Implemented                                                                           |
+### REQ-04: Fallback Determinístico e Bypass de Crise
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-04 |
+| **Descrição** | O sistema deve detectar proativamente inputs de crise (ex: ideação suicida) usando padrões de regex determinísticos. Se detectado, o LLM deve ser bypassado e um bloco de escalonamento crítico (CVV 188 / SAMU 192) deve ser retornado. |
+| **Design** | `isCrisisInput` executa antes do gate do LLM. Se houver match, `crisisEscalationBlock` é enviado diretamente via SSE com severidade `critical` e `safety-bypass` como nome do modelo. |
+| **Código-Fonte** | `aura-backend/src/health/aura-plus/safety.ts`, `aura-backend/src/health/aura-plus/chat.ts` |
+| **Teste** | Testes unitários de backend passando strings de crise conhecidas para verificar escalonamento imediato sem invocação da API Anthropic. |
+| **Evidência** | Padrões regex em `safety.ts` e fluxo de bypass em `chat.ts`. |
+| **Vínculo de Perigo** | HAZ-02, HAZ-03 |
+| **Status** | Implementado |
+
+### REQ-05: Proteção de PHI em Background
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-05 |
+| **Descrição** | Todas as telas que exibem PHI devem aplicar um Gaussian Blur de raio 30 quando o app entra em background, está sendo gravado em tela ou capturado. |
+| **Design** | `PHIProtectionModifier` observa `scenePhase` e `UIScreen.capturedDidChangeNotification`. Aplica blur quando `scenePhase != .active` ou `isCaptured == true`. |
+| **Código-Fonte** | `AuraMedical/Security/PHIProtectionModifier.swift` |
+| **Teste** | QA Manual: verificar blur ao trocar de app, gravação de tela e screenshot. |
+| **Evidência** | Aplicado em BioHubView, DomainDetailView, PersonalDataView, ScoreView. |
+| **Vínculo de Perigo** | HAZ-07, HAZ-10 |
+| **Status** | Implementado |
+
+### REQ-06: Autenticação Biométrica
+
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-06 |
+| **Descrição** | Quando habilitado pelo utilizador, Face ID / Touch ID deve ser obrigatório para aceder ao app. Fallback para passcode do dispositivo. Estado de autenticação armazenado em Keychain (não UserDefaults). |
+| **Design** | `BiometricAuthManager` (@Observable) usa `LAContext.evaluatePolicy(.deviceOwnerAuthentication)`. Habilitação/desabilitação persistida em Keychain via `AuraKeychain`. |
+| **Código-Fonte** | `AuraMedical/Security/BiometricAuthManager.swift` |
+| **Teste** | QA Manual: habilitar bloqueio biométrico, verificar que tela de bloqueio aparece ao retomar o app. |
+| **Evidência** | Entrada de Keychain `biometricAuth.enabled`. |
+| **Vínculo de Perigo** | HAZ-07, HAZ-10 |
+| **Status** | Implementado |
 
 ### REQ-07: Certificate Pinning
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-07                                                                               |
-| **Description**    | All connections to Supabase hosts must use SPKI SHA-256 certificate pinning with fail-closed policy. Backup pin for intermediate CA must be included for rotation resilience. |
-| **Design**         | `PinnedURLSessionDelegate` extracts public key from server certificate, prepends correct ASN.1 header (EC P-256 or RSA), computes SHA-256, and compares against pinned hash set. Rejects connection if no match. |
-| **Source Code**    | `AuraMedical/Security/CertificatePinning.swift` -- `PinnedURLSessionDelegate`, `URLSession.pinned` extension |
-| **Test**           | Integration test: verify connection succeeds to valid hosts; verify rejection on pin mismatch |
-| **Evidence**       | Pinned hosts: `dhteseqmrgvhnuowgblp.supabase.co`, `lldzbrrjamurobvticek.supabase.co` |
-| **Hazard Link**    | HAZ-03, HAZ-09                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-07 |
+| **Descrição** | Todas as conexões aos hosts Supabase e Backend devem utilizar certificate pinning SPKI SHA-256 com política fail-closed. Pin de backup para CA intermediária deve ser incluído para resiliência de rotação. |
+| **Design** | `PinnedURLSessionDelegate` extrai a chave pública do certificado do servidor, prepende o header ASN.1 correto, computa SHA-256 e compara contra o conjunto de hashes fixos. Rejeita conexão se não houver match. |
+| **Código-Fonte** | `AuraMedical/Security/CertificatePinning.swift` |
+| **Teste** | Teste de integração: verificar sucesso de conexão para hosts válidos; verificar rejeição em mismatch de pin. |
+| **Evidência** | Hosts fixos configurados na instância URLSession compartilhada. |
+| **Vínculo de Perigo** | HAZ-06 |
+| **Status** | Implementado |
 
-### REQ-08: Session Idle Timeout
+### REQ-08: Timeout de Inatividade de Sessão
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-08                                                                               |
-| **Description**    | When biometric auth is enabled, the app must auto-lock after 30 minutes of idle time (no user interaction). |
-| **Design**         | `BiometricAuthManager` tracks `lastInteractionDate` and runs `idleTimer` that checks elapsed time against `idleTimeoutInterval` (30 * 60 seconds). |
-| **Source Code**    | `AuraMedical/Security/BiometricAuthManager.swift` -- `idleTimer`, `idleTimeoutInterval`, `lastInteractionDate` |
-| **Test**           | Manual QA: enable biometric lock, wait 30 minutes, verify lock screen appears         |
-| **Evidence**       | `BiometricAuthManager.idleTimeoutInterval = 30 * 60`                                  |
-| **Hazard Link**    | HAZ-10                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-08 |
+| **Descrição** | Quando a autenticação biométrica estiver habilitada, o app deve auto-bloquear após 30 minutos de inatividade (sem interação do utilizador). |
+| **Design** | `BiometricAuthManager` rastreia `lastInteractionDate` e executa `idleTimer` que verifica o tempo decorrido contra `idleTimeoutInterval` (30 * 60 segundos). |
+| **Código-Fonte** | `AuraMedical/Security/BiometricAuthManager.swift` |
+| **Teste** | QA Manual: aguardar 30 minutos, verificar que tela de bloqueio aparece. |
+| **Evidência** | `BiometricAuthManager.idleTimeoutInterval = 30 * 60`. |
+| **Vínculo de Perigo** | HAZ-07, HAZ-10 |
+| **Status** | Implementado |
 
-### REQ-09: Keychain Storage
+### REQ-09: Armazenamento Seguro em Keychain
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-09                                                                               |
-| **Description**    | All sensitive data (tokens, keys, auth flags) must be stored in iOS Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` accessibility. Data must not migrate to backups or new devices. |
-| **Design**         | `AuraKeychain` enum provides typed save/load/delete API. All operations use `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. `deleteAll()` method clears all app entries on logout. |
-| **Source Code**    | `AuraMedical/Security/AuraKeychain.swift` -- `save()`, `load()`, `delete()`, `deleteAll()` |
-| **Test**           | Unit test: save/load/delete cycle; verify accessibility attribute in query             |
-| **Evidence**       | Keychain service identifier: `med.aura.medical`                                       |
-| **Hazard Link**    | HAZ-10, HAZ-16                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-09 |
+| **Descrição** | Todos os dados sensíveis (tokens, chaves) devem ser armazenados no iOS Keychain com acessibilidade `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. Dados não devem migrar para backups ou novos dispositivos. |
+| **Design** | Enum `AuraKeychain` fornece API tipada de save/load/delete. Método `deleteAll()` limpa todas as entradas do app no logout. |
+| **Código-Fonte** | `AuraMedical/Security/AuraKeychain.swift` |
+| **Teste** | Teste unitário: ciclo save/load/delete; verificar atributo de acessibilidade na query. |
+| **Evidência** | Identificador de serviço Keychain `med.aura.medical`. |
+| **Vínculo de Perigo** | HAZ-07, HAZ-10, HAZ-15 |
+| **Status** | Implementado |
 
-### REQ-10: Offline-First Sync
+### REQ-10: Sincronização Offline-First
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-10                                                                               |
-| **Description**    | App must function offline using locally persisted data (SwiftData). Reads from local storage first, then refreshes from Supabase. Writes go to local immediately with `needsUpload` flag, flushed to server asynchronously. Server wins on conflict. |
-| **Design**         | `SyncManager` (@MainActor, @Observable) coordinates SwiftData <-> Supabase sync. ModelContainer uses `NSFileProtectionComplete` for encryption at rest. |
-| **Source Code**    | `AuraMedical/LocalData/SyncManager.swift` -- `sync()`, `makeContainer()`             |
-| **Test**           | Integration test: verify local read without network; verify sync after reconnection   |
-| **Evidence**       | SwiftData models: `LocalScore`, `LocalProfile`, `LocalBiometrics`                     |
-| **Hazard Link**    | HAZ-07                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-10 |
+| **Descrição** | O app deve funcionar offline utilizando dados persistidos localmente (SwiftData). Escritas vão para o local imediatamente com flag `needsUpload`, sincronizadas com o servidor assincronamente. |
+| **Design** | `SyncManager` coordena sync SwiftData ↔ Supabase. ModelContainer usa `NSFileProtectionComplete` para criptografia em repouso. |
+| **Código-Fonte** | `AuraMedical/LocalData/SyncManager.swift` |
+| **Teste** | Teste de integração: verificar leitura local sem rede; verificar sync após reconexão. |
+| **Evidência** | Modelos SwiftData `LocalScore`, `LocalProfile`, `LocalBiometrics`. |
+| **Vínculo de Perigo** | HAZ-06, HAZ-11 |
+| **Status** | Implementado |
 
-### REQ-11: App Attest Device Integrity
+### REQ-11: Integridade de Dispositivo via App Attest
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-11                                                                               |
-| **Description**    | App must use Apple App Attest to generate and store a device attestation key on first launch. Key ID stored in Keychain. Attestation object sent to backend for verification on API calls. |
-| **Design**         | `AppAttestManager` actor uses `DCAppAttestService` to generate key. Key ID cached in memory and persisted in Keychain. `attest()` produces attestation for server-provided challenge hash. |
-| **Source Code**    | `AuraMedical/Security/AppAttestManager.swift` -- `generateKeyIfNeeded()`, `attest()`, `assertKey()` |
-| **Test**           | Device test: verify key generation on supported device; verify Keychain persistence    |
-| **Evidence**       | Keychain entry `appAttest.keyId`; attestation header in backend requests               |
-| **Hazard Link**    | HAZ-10, HAZ-16                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-11 |
+| **Descrição** | O app deve utilizar Apple App Attest para gerar e armazenar uma chave de attestation do dispositivo no primeiro lançamento. Key ID armazenado em Keychain. |
+| **Design** | Actor `AppAttestManager` usa `DCAppAttestService` para gerar chave. `attest()` produz attestation para hash de challenge fornecido pelo servidor. |
+| **Código-Fonte** | `AuraMedical/Security/AppAttestManager.swift` |
+| **Teste** | Teste em dispositivo: verificar geração de chave em dispositivo suportado. |
+| **Evidência** | Entrada de Keychain `appAttest.keyId`. |
+| **Vínculo de Perigo** | HAZ-10, HAZ-15 |
+| **Status** | Implementado |
 
-### REQ-12: Five-Domain Scoring
+### REQ-12: Data Caps de Biomarcadores Críticos
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-12                                                                               |
-| **Description**    | Engine must compute individual scores (0--100) for exactly five health domains: metabolic, cardiovascular, sleep, nervous, and inflammatory. Each domain uses specific biomarkers with configurable weights. |
-| **Design**         | `PhenomicEngine.compute()` calculates each domain score using `systemWeights` and `clusterInputWeights` from `EngineConfig`. Results returned as `PhenomicSlice` array within `PhenomicResult`. |
-| **Source Code**    | `Engine/PhenomicEngine.swift:compute()` -- domain score calculation sections           |
-| **Test**           | Parity test vectors verify all 5 domain scores; boundary tests for each domain        |
-| **Evidence**       | `phenomic-engine/parity-vectors.json` -- 8 vectors with per-domain outputs             |
-| **Hazard Link**    | HAZ-01, HAZ-06                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-12 |
+| **Descrição** | Biomarcadores com valores acima dos limiares de alerta clínico devem forçar imediatamente a flag do domínio correspondente, independentemente de quaisquer outros inputs positivos. Este mecanismo ("Data Cap") impede que resultados positivos de estilo de vida ocultem riscos laboratoriais críticos. |
+| **Design** | `DomainEvaluator.evaluateDomain()` verifica limites rígidos específicos (ApoB > 90 mg/dL, Glicose >= 100 mg/dL, HbA1c >= 5.7%, PCR-us > 3.0 mg/L) e força a flag do domínio imediatamente, antes de avaliar os demais inputs. |
+| **Código-Fonte** | `AuraMedical/DomainEvaluator.swift:evaluateDomain()` |
+| **Teste** | EV-03: ApoB = 92 mg/dL → flag `apob_elevated` ativada; EV-05: HbA1c 5.8% + questionário saudável → flag `hba1c_prediabetic` ativada. |
+| **Evidência** | Lógica de "cap" no `evaluateDomain` demonstrando que o input laboratorial sobrepõe o questionário. |
+| **Vínculo de Perigo** | HAZ-01 |
+| **Status** | Implementado |
 
-### REQ-13: Ghost Mode for Missing Data
+### REQ-13: Ghost Mode (Fallback para Dados Insuficientes)
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-13                                                                               |
-| **Description**    | When entire data categories are missing (no wearable, no labs), the engine must apply conservative score caps to prevent artificially high scores. Caps are configurable per domain. |
-| **Design**         | `GhostMode` config defines caps: `metabolicBmiCap`, `cardioActivityCap`, `inflammatoryMetabolicCaps` (severe/moderate), `nervousInflammatoryCap`. Applied during domain score finalization. |
-| **Source Code**    | `Engine/EngineConfig.swift:GhostMode`, `Engine/PhenomicEngine.swift` -- ghost mode application sections |
-| **Test**           | Parity test vector with minimal data verifies ghost mode caps applied                  |
-| **Evidence**       | Config values in `EngineConfig.default.ghostMode`                                      |
-| **Hazard Link**    | HAZ-01, HAZ-07                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-13 |
+| **Descrição** | Quando categorias de dados estiverem ausentes, os domínios devem aplicar estimativas conservadoras ou interromper a avaliação para prevenir falsos positivos de saúde. |
+| **Design** | Um domínio exige `minimumItemsForStatus = 3`. Se os inputs estiverem abaixo deste limiar, o motor retorna um nível nulo com uma narrativa solicitando mais dados. |
+| **Código-Fonte** | `AuraMedical/DomainEvaluator.swift:evaluateDomain()` |
+| **Teste** | Teste unitário fornecendo < 3 pontos de dados por domínio. |
+| **Evidência** | `DomainStatus` retornado com `level = nil`. |
+| **Vínculo de Perigo** | HAZ-01, HAZ-11 |
+| **Status** | Implementado |
 
-### REQ-14: Systemic Drag Penalty
+### REQ-14: Integração de Instrumentos Clínicos Validados
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-14                                                                               |
-| **Description**    | When a biomarker exceeds a severe threshold in one domain, related domains must receive a configurable penalty ("systemic drag") to reflect physiological cross-system impact. |
-| **Design**         | `SystemicDragRule` array in config: each rule specifies a symptom, threshold, and array of target domain penalties. Applied after individual domain scoring. |
-| **Source Code**    | `Engine/EngineConfig.swift:SystemicDragRule`, `Engine/PhenomicEngine.swift` -- systemic drag application |
-| **Test**           | Parity test vector with extreme biomarker verifies cross-domain penalty                |
-| **Evidence**       | Config values in `EngineConfig.default.systemicDragRules`                              |
-| **Hazard Link**    | HAZ-01                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-14 |
+| **Descrição** | Instrumentos clínicos padronizados (PHQ-9, GAD-7, PSQI, FINDRISC) devem ser avaliados conforme diretrizes clínicas e gerar flags de risco específicas. |
+| **Design** | Estruturas de pontuação dedicadas (ex: `scorePHQ9`, `scorePSQI`) mapeiam respostas ordinais para tiers de severidade e substituem flags básicas do onboarding (`replacesFlags`) por flags derivadas de maior confiança (`derivedFlags`). |
+| **Código-Fonte** | `AuraMedical/InstrumentScoring.swift` |
+| **Teste** | Testes unitários comparando vetores de score clínico conhecidos com as flags derivadas corretas. |
+| **Evidência** | Array `derivedFlags` substituindo `flaggedItems` genéricos. |
+| **Vínculo de Perigo** | HAZ-11 |
+| **Status** | Implementado |
 
-### REQ-15: Inference Layer Estimation
+### REQ-15: Validação de Dados de Wearables Externos
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-15                                                                               |
-| **Description**    | Missing symptoms must be estimated using evidence-based correlations. Real data always overrides inference. Inferred values must be discounted by confidence level. All inferences must be audited with source, coefficient, and reference. |
-| **Design**         | `InferenceLayer.infer()` iterates correlation matrix from config. Propagation threshold (>= 3) prevents weak signals. Discount factors reduce inferred values. Audit trail captures every inference step. |
-| **Source Code**    | `Engine/InferenceLayer.swift` -- `infer()`, `getConfidenceLevel()`, `AuditEntry` struct |
-| **Test**           | Unit tests for inference with known correlation inputs; verify discount factor application |
-| **Evidence**       | `EngineConfig.default.inferenceCorrelations`, `EngineConfig.default.inferenceDiscountFactors` |
-| **Hazard Link**    | HAZ-01, HAZ-11                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-15 |
+| **Descrição** | Dados provenientes de wearables externos devem ser validados quanto à fonte (bundle identifier) e formato antes de serem utilizados na avaliação clínica. Dados de fontes desconhecidas devem ser descartados. |
+| **Design** | Enum `HealthSource` mapeia bundle identifiers conhecidos (Garmin, Oura, Whoop, Apple Watch) para ícones e tipos de dados específicos. `HealthKitSyncService` valida a origem antes da ingestão. |
+| **Código-Fonte** | `AuraMedical/HealthDataModels.swift`, `AuraMedical/HealthKitSyncService.swift` |
+| **Teste** | Teste com mock de fontes de wearable: injeção de bundle ID desconhecido deve ser ignorada. |
+| **Evidência** | Enum `HealthSource` processando strings de `bid`. |
+| **Vínculo de Perigo** | HAZ-01, HAZ-17 |
+| **Status** | Implementado |
 
-### REQ-16: Data Encryption at Rest
+### REQ-16: Criptografia de Dados em Repouso
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-16                                                                               |
-| **Description**    | All locally persisted health data must be encrypted at rest using iOS file protection. SwiftData store must use `NSFileProtectionComplete` (encrypted when device locked). |
-| **Design**         | `SyncManager.makeContainer()` creates `ModelContainer` with `NSFileProtectionComplete`. Keychain uses `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. |
-| **Source Code**    | `AuraMedical/LocalData/SyncManager.swift:makeContainer()` -- `ModelConfiguration` with file protection |
-| **Test**           | Verify ModelContainer configuration; verify file protection attribute on SQLite store   |
-| **Evidence**       | SwiftData store path with NSFileProtectionComplete attribute                           |
-| **Hazard Link**    | HAZ-09, HAZ-16                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-16 |
+| **Descrição** | Todos os dados de saúde persistidos localmente devem ser criptografados em repouso utilizando iOS file protection. O armazenamento SwiftData deve usar `NSFileProtectionComplete`. |
+| **Design** | `SyncManager.makeContainer()` cria `ModelContainer` com `NSFileProtectionComplete`. |
+| **Código-Fonte** | `AuraMedical/LocalData/SyncManager.swift` |
+| **Teste** | Verificar configuração do ModelContainer. |
+| **Evidência** | Caminho do SwiftData store com atributo de proteção. |
+| **Vínculo de Perigo** | HAZ-08, HAZ-15 |
+| **Status** | Implementado |
 
-### REQ-17: Account Deletion
+### REQ-17: Exclusão de Conta
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-17                                                                               |
-| **Description**    | Users must be able to delete their account. Deletion uses soft-delete with 30-day hold before permanent purge. Server-side RPC handles cascading deletion across all tables. |
-| **Design**         | `delete_my_account()` Supabase RPC function performs soft-delete. Related table rows cascade. 30-day hold allows recovery from accidental deletion. |
-| **Source Code**    | Supabase RPC `delete_my_account()`; triggered from Profile settings in app             |
-| **Test**           | Integration test: call RPC, verify soft-delete flag set; verify cascading deletes      |
-| **Evidence**       | Supabase function definition; LGPD/App Store compliance                                |
-| **Hazard Link**    | HAZ-13                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-17 |
+| **Descrição** | Utilizadores devem poder excluir sua conta. RPC do lado do servidor realiza exclusão em cascata em todas as tabelas com retenção soft-delete de 30 dias. |
+| **Design** | Função RPC `delete_my_account()` do Supabase realiza soft-delete. |
+| **Código-Fonte** | Supabase RPC `delete_my_account()` |
+| **Teste** | Teste de integração: chamar RPC, verificar flag de soft-delete ativada. |
+| **Evidência** | Definição da função Supabase. |
+| **Vínculo de Perigo** | HAZ-13 |
+| **Status** | Implementado |
 
-### REQ-18: Logout Clears Local Data
+### REQ-18: Logout Limpa Dados Locais
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-18                                                                               |
-| **Description**    | On sign-out, all locally cached PHI must be deleted: SwiftData models (LocalScore, LocalProfile, LocalBiometrics), Keychain entries, and in-memory state. |
-| **Design**         | `AuthViewModel.signOut()` calls Supabase sign-out, then deletes all SwiftData models via `ModelContext.delete(model:)`, calls `AuraKeychain.deleteAll()`, and resets authentication state. |
-| **Source Code**    | `AuraMedical/ViewModels/AuthViewModel.swift:signOut()` -- SwiftData deletion, Keychain clearing |
-| **Test**           | Integration test: sign out, verify SwiftData empty, verify Keychain cleared            |
-| **Evidence**       | Code review of signOut() method                                                        |
-| **Hazard Link**    | HAZ-13                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-18 |
+| **Descrição** | No sign-out, todo PHI cacheado localmente deve ser excluído: modelos SwiftData, entradas de Keychain e estado em memória. |
+| **Design** | `AuthViewModel.signOut()` chama sign-out do Supabase, exclui modelos via `ModelContext.delete` e chama `AuraKeychain.deleteAll()`. |
+| **Código-Fonte** | `AuraMedical/ViewModels/AuthViewModel.swift:signOut()` |
+| **Teste** | Teste de integração: sign out, verificar SwiftData vazio, verificar Keychain limpo. |
+| **Evidência** | Revisão de código do método `signOut()`. |
+| **Vínculo de Perigo** | HAZ-13 |
+| **Status** | Implementado |
 
-### REQ-19: No PHI in Logs
+### REQ-19: Proibição de PHI em Logs
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-19                                                                               |
-| **Description**    | Application logs must not contain PHI. All logging must use `os.Logger` with `privacy: .private` annotations for any potentially sensitive values. `print()` must not be used for PHI-adjacent data. Backend uses Pino with PHI field redaction. |
-| **Design**         | All Security/ files use `Logger(subsystem: "med.aura.medical", category: ...)`. Sensitive values annotated `privacy: .private`. Audit logger hashes inputs instead of logging raw values. |
-| **Source Code**    | All files in `AuraMedical/Security/` -- `os.Logger` usage throughout                  |
-| **Test**           | Code review: grep for `print(` in Security/ and Engine/ directories; verify os.Logger usage |
-| **Evidence**       | Static analysis of logging patterns                                                    |
-| **Hazard Link**    | HAZ-05                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-19 |
+| **Descrição** | Logs da aplicação não devem conter PHI. Todo logging deve usar `os.Logger` com `privacy: .private` ou o logger Pino do backend com redação de campos PHI. |
+| **Design** | Valores sensíveis são hashados (SHA-256) ou anotados com `privacy: .private`. |
+| **Código-Fonte** | `AuraMedical/Security/` e `aura-backend/src/shared/logger.ts` |
+| **Teste** | Revisão de código: grep por `print(`; verificar uso de os.Logger. |
+| **Evidência** | Análise estática de padrões de logging. |
+| **Vínculo de Perigo** | HAZ-05 |
+| **Status** | Implementado |
 
-### REQ-20: Privacy Usage Descriptions
+### REQ-20: Descrições de Uso de Privacidade
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-20                                                                               |
-| **Description**    | Info.plist must include usage descriptions for all sensitive permissions: HealthKit (`NSHealthShareUsageDescription`, `NSHealthUpdateUsageDescription`), Face ID (`NSFaceIDUsageDescription`), Camera (`NSCameraUsageDescription`), Photo Library (`NSPhotoLibraryUsageDescription`). |
-| **Design**         | All usage descriptions provided in PT-BR. Descriptions explain why each permission is needed in user-friendly language. |
-| **Source Code**    | `project.yml` -- `info.plist` section with all `NS*UsageDescription` keys              |
-| **Test**           | Build verification: confirm all descriptions present in compiled Info.plist             |
-| **Evidence**       | Xcode project settings; App Store review compliance                                    |
-| **Hazard Link**    | None (regulatory compliance)                                                           |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-20 |
+| **Descrição** | Info.plist deve incluir descrições de uso para HealthKit, Face ID, Câmara e Biblioteca de Fotos. |
+| **Design** | Descrições fornecidas em PT-BR explicando por que cada permissão é necessária. |
+| **Código-Fonte** | `project.yml` — seção `info.plist` |
+| **Teste** | Verificação de build. |
+| **Evidência** | Conformidade com revisão da App Store. |
+| **Vínculo de Perigo** | Nenhum (Regulatório) |
+| **Status** | Implementado |
 
-### REQ-21: Engine Version Tracking
+### REQ-21: Rastreamento de Versão do LLM
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-21                                                                               |
-| **Description**    | Engine version must be tracked and included in all audit log entries and cross-validation requests. Format: `X.Y.Z-swift` for iOS, `X.Y.Z` for TypeScript. |
-| **Design**         | `PhenomicEngine.engineVersion` static constant. Included in `EngineAuditLogger.log()` as `modelVersion` and in `AuraBackendClient.validateEngine()` as `engine_version`. |
-| **Source Code**    | `Engine/PhenomicEngine.swift:engineVersion` (currently "4.2.0-swift")                  |
-| **Test**           | Verify version string format; verify presence in audit log rows                        |
-| **Evidence**       | `ai_audit_log.model_version` column                                                    |
-| **Hazard Link**    | HAZ-04                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-21 |
+| **Descrição** | A versão do modelo LLM subjacente deve ser explicitamente definida e rastreada em todos os logs de auditoria de IA para garantir rastreabilidade determinística de comportamento. |
+| **Design** | `HAIKU_MODEL` é um ID de snapshot datado codificado (ex: `claude-haiku-4-5-20251001`), evitando upgrades silenciosos da API. |
+| **Código-Fonte** | `aura-backend/src/health/aura-plus/anthropic.ts:HAIKU_MODEL` |
+| **Teste** | Revisão do log de auditoria. |
+| **Evidência** | Coluna `ai_audit_log.model` utiliza ID de snapshot. |
+| **Vínculo de Perigo** | HAZ-12 |
+| **Status** | Implementado |
 
-### REQ-22: Deterministic Engine Output
+### REQ-24: Limiares de Referência Específicos por Sexo
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-22                                                                               |
-| **Description**    | The Phenomic Engine must be a pure function: same input + same config = same output, always. No random state, no external dependencies, no side effects. |
-| **Design**         | `PhenomicEngine` is a struct with only static methods. `compute()` takes `EngineComputeRequest` and `EngineConfig` and returns `PhenomicResult`. No mutable state, no I/O, no randomness. |
-| **Source Code**    | `Engine/PhenomicEngine.swift` -- all methods are `static`                              |
-| **Test**           | Parity test: same input vector produces identical output on repeated runs               |
-| **Evidence**       | Architecture review: struct with static methods, no instance state                     |
-| **Hazard Link**    | HAZ-12, HAZ-17                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-24 |
+| **Descrição** | Faixas de referência para biomarcadores como ácido úrico e HDL devem ser avaliadas condicionalmente com base no sexo biológico do utilizador. |
+| **Design** | O avaliador verifica `answers["biological_sex"]` antes de aplicar o limiar (ex: Ácido Úrico limiar 7.0 para masculino, 6.0 para feminino). |
+| **Código-Fonte** | `AuraMedical/DomainEvaluator.swift:evaluateDomain()` |
+| **Teste** | Vetores de teste para inputs masculinos e femininos. |
+| **Evidência** | Branches de avaliação mapeados em `evaluateDomain`. |
+| **Vínculo de Perigo** | HAZ-09, HAZ-14 |
+| **Status** | Implementado |
 
-### REQ-23: Soft Normalization with Floor
+### REQ-25: Lógica de Nível de Status (Cinco Tiers)
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-23                                                                               |
-| **Description**    | All biomarker normalization must use soft normalization with a guaranteed floor of 0.1 (never zero). Supports both "lower is better" and "higher is better" (inverted) modes. |
-| **Design**         | `PhenomicEngine.softNormalize()` maps values to [0.1, 1.0] range. Default mode: lower is better. Inverted mode: higher is better (steps, HRV, HDL). |
-| **Source Code**    | `Engine/PhenomicEngine.swift:softNormalize()` (lines 25--36)                          |
-| **Test**           | Unit tests for boundary values, inversion, and floor guarantee                         |
-| **Evidence**       | Parity with TypeScript `softNormalize()` function                                      |
-| **Hazard Link**    | HAZ-20                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-25 |
+| **Descrição** | Scores devem ser mapeados para uma escala qualitativa (Nível de Status) para informar o utilizador sem fornecer scores absolutos diagnósticos. |
+| **Design** | `StatusLevel.from(flagCount: totalItems)` deriva o estado clínico da proporção de itens sinalizados vs saudáveis em um dado domínio. |
+| **Código-Fonte** | `AuraMedical/DomainEvaluator.swift` |
+| **Teste** | Teste unitário verificando limites de tiers. |
+| **Evidência** | Propriedade `DomainStatus.level`. |
+| **Vínculo de Perigo** | HAZ-01 |
+| **Status** | Implementado |
 
-### REQ-24: Gender-Specific Reference Ranges
+### REQ-28: Ingestão Multi-Fonte via HealthKit
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-24                                                                               |
-| **Description**    | Reference ranges for WHR, HDL, ferritin, and DHEA-S must be gender-specific. Male and female ranges defined separately in config. |
-| **Design**         | `ReferenceRanges` struct contains `male` and `female` `GenderRanges`. `forGender()` method selects correct range set. |
-| **Source Code**    | `Engine/EngineConfig.swift:ReferenceRanges` -- `forGender()` method                   |
-| **Test**           | Parity test vectors include male and female cases; verify different ranges applied      |
-| **Evidence**       | Config values in `EngineConfig.default.referenceRanges`                                |
-| **Hazard Link**    | HAZ-14                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-28 |
+| **Descrição** | O app deve ingerir dados de múltiplos ecossistemas de wearables (Garmin, Oura, Whoop, Apple) para construir as avaliações de atividade física e sono. |
+| **Design** | `HealthSource` mapeia bundle identifiers para ícones e tipos de dados específicos. `HealthKitSyncService` sincroniza resumos diários em background. |
+| **Código-Fonte** | `AuraMedical/HealthDataModels.swift`, `HealthKitSyncService.swift` |
+| **Teste** | Teste de injeção de fontes de wearable via mock. |
+| **Evidência** | Enum `HealthSource` processando strings de `bid`. |
+| **Vínculo de Perigo** | HAZ-11, HAZ-17 |
+| **Status** | Implementado |
 
-### REQ-25: Sleep Score Architecture
+### REQ-29: Indicador de Confiança / Precisão dos Dados
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-25                                                                               |
-| **Description**    | Sleep domain score must be computed from sleep architecture data: duration, REM %, deep %, and efficiency. Each component uses piecewise scoring with configurable thresholds and weights. |
-| **Design**         | `PhenomicEngine.calculateSleepScore()` computes weighted average of duration, REM, deep, and efficiency scores using `SleepThresholds` config. Returns nil if no sleep data. |
-| **Source Code**    | `Engine/PhenomicEngine.swift:calculateSleepScore()` (lines 134--200+)                 |
-| **Test**           | Parity test vectors with various sleep architectures                                   |
-| **Evidence**       | Config values in `EngineConfig.default.sleepThresholds`                                |
-| **Hazard Link**    | HAZ-07                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-29 |
+| **Descrição** | O app deve calcular uma métrica `DataConfidence` refletindo a disponibilidade de wearables, instrumentos validados e dados laboratoriais para informar o utilizador sobre a fiabilidade da avaliação. |
+| **Design** | Verificações booleanas para `hasWearable`, `hasValidatedInstrument` e `hasLabs` combinam-se para definir o tier de confiança dos dados da avaliação. |
+| **Código-Fonte** | `AuraMedical/DomainEvaluator.swift:DataConfidence` |
+| **Teste** | Testes de UI validando o badge de precisão. |
+| **Evidência** | Propriedade `DomainStatus.confidence`. |
+| **Vínculo de Perigo** | HAZ-01, HAZ-11 |
+| **Status** | Implementado |
 
-### REQ-26: Activity Vector Fallback
+### REQ-31: Autenticação JWT e RLS no Supabase
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-26                                                                               |
-| **Description**    | Activity vector must attempt: (1) steps data, (2) resting heart rate, (3) configurable fallback score ("safe pessimism"). Each step only used if previous is unavailable. |
-| **Design**         | `PhenomicEngine.calculateActivityVector()` uses cascading fallback: steps -> RHR -> fallbackScore from `ActivityThresholds` config. |
-| **Source Code**    | `Engine/PhenomicEngine.swift:calculateActivityVector()` (lines 109--127)               |
-| **Test**           | Unit tests: verify each fallback level with selective nil inputs                       |
-| **Evidence**       | `EngineConfig.default.thresholds.activity.fallbackScore`                               |
-| **Hazard Link**    | HAZ-07                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-31 |
+| **Descrição** | Todas as chamadas de API autenticadas devem incluir um JWT Supabase válido. O banco de dados DEVE impor Row-Level Security (RLS) para que utilizadores possam estritamente consultar apenas registros do seu próprio UUID. |
+| **Design** | `AuraBackendClient` anexa o JWT da sessão. Políticas do Supabase impõem `auth.uid() = user_id` para todas as operações. |
+| **Código-Fonte** | `AuraMedical/ViewModels/AuthViewModel.swift`, Políticas RLS do PostgreSQL. |
+| **Teste** | Teste de integração: verificar JWT presente; verificar 401/403 em token expirado ou fetch de registro não pertencente ao utilizador. |
+| **Evidência** | Middleware de auth do backend e definições de schema do BD. |
+| **Vínculo de Perigo** | HAZ-07, HAZ-08, HAZ-10 |
+| **Status** | Implementado |
 
-### REQ-27: Remote Config with Fallback
+### REQ-32: Cache de Snapshot de Dados (Desempenho/Segurança)
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-27                                                                               |
-| **Description**    | Engine configuration must be fetched from Supabase `engine_config` table. Must fall back to hardcoded `.default` config on fetch failure. Cached config used for instant startup. |
-| **Design**         | `EngineConfigManager` actor: `warmup()` loads cache then refreshes from network. `refreshConfig()` fetches active config. Falls back to `.default` on any failure. |
-| **Source Code**    | `Engine/Config/EngineConfigManager.swift` -- `warmup()`, `refreshConfig()`, `loadCached()` |
-| **Test**           | Integration test: verify fallback on network failure; verify cache persistence          |
-| **Evidence**       | `engine_config` table in Supabase; `UserDefaults` cache key                            |
-| **Hazard Link**    | HAZ-18                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-32 |
+| **Descrição** | Para garantir que respostas do LLM atuem sobre dados clínicos frescos porém estáveis, um User Snapshot é cacheado com TTL de 6 horas, reconstruído a partir de 5 queries paralelas ao Supabase (perfis, questionários, biomarcadores, assessments, wearables) se stale. |
+| **Design** | `fetchUserSnapshot` verifica `health_snapshot_cache`. Recomputa e upsert em caso de miss. O snapshot dita restrições do LLM via `has_active_safety_alert`. |
+| **Código-Fonte** | `aura-backend/src/health/aura-plus/snapshot.ts` |
+| **Teste** | Testes de cache hit/miss simulando passagem de tempo. |
+| **Evidência** | Queries ao BD `health_snapshot_cache`. |
+| **Vínculo de Perigo** | HAZ-16 |
+| **Status** | Implementado |
 
-### REQ-28: HealthKit Background Delivery
+### REQ-33: System Prompt Contexto-Aware do Backend
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-28                                                                               |
-| **Description**    | App must register for HealthKit background delivery to receive wearable data updates when not in foreground. Daily summaries synced to Supabase. |
-| **Design**         | `HealthKitSyncService` actor processes background delivery callbacks. Aggregates daily metrics (HRV, RHR, steps, sleep) and upserts to `healthkit_daily_summaries` table. |
-| **Source Code**    | `AuraMedical/Services/HealthKitSyncService.swift:syncToday()`                          |
-| **Test**           | Integration test: trigger background delivery handler; verify Supabase upsert          |
-| **Evidence**       | `healthkit_daily_summaries` table; HealthKit background delivery entitlement            |
-| **Hazard Link**    | HAZ-07, HAZ-19                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-33 |
+| **Descrição** | O system prompt do LLM deve injetar dinamicamente o snapshot clínico do utilizador e protocolos de formatação estritos (XML) enquanto adere às doutrinas Medicine 3.0. |
+| **Design** | `buildFullSystemPrompt` integra nome do utilizador, regras de disclaimer, safety gates e a representação Markdown do snapshot para delimitar o contexto de geração da IA. |
+| **Código-Fonte** | `aura-backend/src/health/aura-plus/system-prompt.ts` |
+| **Teste** | Testes de validação de prompt. |
+| **Evidência** | Regra estrita no system prompt: "NUNCA diagnostica". |
+| **Vínculo de Perigo** | HAZ-02 |
+| **Status** | Implementado |
 
-### REQ-29: Precision Indicator
+### REQ-34: Integração de Alertas de Segurança Clínica (Domínio Mente)
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-29                                                                               |
-| **Description**    | The app must display a precision/confidence indicator showing the proportion of real vs. inferred/missing data used in the score computation. Score is considered "estimated" when precision < 40%. |
-| **Design**         | `PrecisionStatus` computed from data availability (wearable, questionnaire, biometrics, labs). `PhenomicResult.precision` field. `PhenomicService.isEstimated` computed property. |
-| **Source Code**    | `AuraMedical/Services/PhenomicService.swift` -- `precisionStatus`, `isEstimated`       |
-| **Test**           | Verify precision badge reflects data availability; verify isEstimated threshold          |
-| **Evidence**       | UI displays precision badge on ScoreView                                               |
-| **Hazard Link**    | HAZ-01, HAZ-11                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-34 |
+| **Descrição** | Se um assessment (ex: PHQ-9 item 9) acionar um alerta de segurança, a flag `has_active_safety_alert` do snapshot torna-se verdadeira por 90 dias. Isto adiciona um adendo crítico ao prompt do LLM para tratar qualquer queixa de sintomas com um bloco de emergência imediato. |
+| **Design** | `snapshot.has_active_safety_alert` adiciona condicionalmente uma seção `# SAFETY GATE ATIVO` ao prompt ditando resposta de bloco de escalonamento. |
+| **Código-Fonte** | `snapshot.ts`, `system-prompt.ts` |
+| **Teste** | Backend e2e com snapshot sinalizado acionando o bloco de escalonamento. |
+| **Evidência** | Avaliação de output do prompt. |
+| **Vínculo de Perigo** | HAZ-01, HAZ-03 |
+| **Status** | Implementado |
 
-### REQ-30: Five-Tier Qualitative Scale
+### REQ-35: Gate de Consentimento (LGPD Art. 11)
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-30                                                                               |
-| **Description**    | Scores must be mapped to a five-tier qualitative scale for user-friendly display: critical (0--20), warning (21--40), fair (41--60), good (61--80), excellent (81--100). |
-| **Design**         | Score tier computed from `totalScore` integer. UI displays corresponding label, color, and icon per tier. |
-| **Source Code**    | Score tier logic in view layer; `AuraColors` provides tier-appropriate colors           |
-| **Test**           | Unit test: verify tier boundaries; visual QA on all tier displays                      |
-| **Evidence**       | UI screenshots for each tier                                                           |
-| **Hazard Link**    | HAZ-06                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-35 |
+| **Descrição** | Como provedores de LLM atuam como subprocessadores de dados sensíveis de saúde (LGPD Art. 11), consentimento explícito e auditado é obrigatório antes de abrir o chat. |
+| **Design** | `hasAuraPlusLlmConsent` consulta a tabela `user_consents` em busca de um grant explícito `aura_plus_llm`, verificando a trilha de auditoria (IP, User Agent, Timestamp). Falha fechado (fail-closed). |
+| **Código-Fonte** | `aura-backend/src/health/aura-plus/consent-gate.ts` |
+| **Teste** | Bloqueio de acesso quando row de consentimento está ausente ou `granted` = false. |
+| **Evidência** | Lógica de lookup na tabela `user_consents`. |
+| **Vínculo de Perigo** | HAZ-05, HAZ-13 |
+| **Status** | Implementado |
 
-### REQ-31: Supabase JWT Authentication
+### REQ-36: Bloqueio Doctor-in-the-Loop do CDSS
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-31                                                                               |
-| **Description**    | All authenticated API calls must include a valid Supabase JWT in the Authorization header. Supports email/password, Google Sign-In, and Apple Sign-In. |
-| **Design**         | `AuthViewModel` manages Supabase session. `AuraBackendClient` attaches JWT from `supabase.auth.session` to every request. |
-| **Source Code**    | `AuraMedical/ViewModels/AuthViewModel.swift` -- `signIn()`, `signUp()`, `signInWithGoogle()`, `signInWithApple()`; `AuraMedical/Services/AuraBackendClient.swift:attachAuthHeader()` |
-| **Test**           | Integration test: verify JWT present in backend requests; verify 401 on expired token  |
-| **Evidence**       | Backend auth middleware validates JWT                                                   |
-| **Hazard Link**    | HAZ-10                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-36 |
+| **Descrição** | O sistema atua como CDSS e não como prescritor. Qualquer protocolo clínico sugerido pelo LLM DEVE ser emitido como um `ProtocolBlock` com `"locked": true`. |
+| **Design** | O System Prompt força estritamente o JSON de `protocolCard` a manter `locked: true`. O backend `checkAuraPlusGate` impede acesso a protocolos completos até que o utilizador tenha um registro de consulta (`unlocked_at != null`). |
+| **Código-Fonte** | `gate.ts:checkAuraPlusGate`, `blocks.ts:ProtocolBlock`, `system-prompt.ts` |
+| **Teste** | Assertir que o parser de output JSON descarta blocos de protocolo sem a flag locked. |
+| **Evidência** | Tipagem `ProtocolBlock` em `blocks.ts`. |
+| **Vínculo de Perigo** | HAZ-02, HAZ-04 |
+| **Status** | Implementado |
 
-### REQ-32: Score Persistence
+### REQ-37: Output Streaming e Parser de Blocos
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-32                                                                               |
-| **Description**    | Every valid engine computation result must be persisted to both local storage (SwiftData LocalScore) and remote storage (Supabase daily_phenomic_scores). Includes audit log ID linkage. |
-| **Design**         | `ScorePersistence.shared.persistIfNeeded()` writes to both stores. `daily_phenomic_scores.audit_log_id` links score to audit trail. |
-| **Source Code**    | `Engine/ScorePersistence.swift:persistIfNeeded()`, `AuraMedical/LocalData/LocalScore.swift` |
-| **Test**           | Integration test: compute score, verify LocalScore and daily_phenomic_scores rows       |
-| **Evidence**       | SwiftData LocalScore model; Supabase `daily_phenomic_scores` table                     |
-| **Hazard Link**    | HAZ-06, HAZ-12                                                                        |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-37 |
+| **Descrição** | Respostas de IA devem ser parseadas de forma segura via um Tag Parser determinístico para isolar texto Markdown de blocos de UI funcionais (ex: protocolos), enviando-os sequencialmente via Server-Sent Events (SSE). |
+| **Design** | `BlockTagParser` processa tokens brutos do LLM, matchando tags `<text>` e `<protocolCard>`, descartando alucinações fora das tags e enfileirando escritas SSE via `emitBlockEnd`. |
+| **Código-Fonte** | `aura-backend/src/health/aura-plus/chat.ts`, `aura-backend/src/health/aura-plus/sse.ts` |
+| **Teste** | Testes de mock de parsing de stream. |
+| **Evidência** | Frontend recebendo eventos `block_start` e `block_end` com segurança. |
+| **Vínculo de Perigo** | HAZ-02, HAZ-04 |
+| **Status** | Implementado |
 
-### REQ-33: Backend Client Certificate Pinning
+### REQ-38: Âncoras Clínicas Medicine 3.0
 
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-33                                                                               |
-| **Description**    | The AuraBackendClient must use the certificate-pinned URLSession for all backend API calls. Base URL configured via xcconfig (not hardcoded). |
-| **Design**         | `AuraBackendClient` uses `URLSession.pinned` (shared pinned session). Base URL read from `Bundle.main.infoDictionary["AURA_BACKEND_URL"]`. Crashes on startup if not configured. |
-| **Source Code**    | `AuraMedical/Services/AuraBackendClient.swift` -- `session: .pinned`, `baseURL` from xcconfig |
-| **Test**           | Build verification: confirm xcconfig contains AURA_BACKEND_URL; verify .pinned session used |
-| **Evidence**       | `Debug.xcconfig` / `Release.xcconfig` contain AURA_BACKEND_URL                         |
-| **Hazard Link**    | HAZ-03, HAZ-18                                                                        |
-| **Status**         | Implemented                                                                           |
-
-### REQ-34: Data Cap Safety Limits
-
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-34                                                                               |
-| **Description**    | Domain scores must be capped when critical biomarkers exceed safety thresholds. Prevents artificially high scores when dangerous values are present. Configurable per domain per biomarker. |
-| **Design**         | `DataCaps` config defines per-biomarker threshold/cap pairs for cardio (BP), metabolic (HbA1c, HOMA-IR, BMI), and inflammatory (hs-CRP). Applied after domain score calculation. |
-| **Source Code**    | `Engine/EngineConfig.swift:DataCaps`, `Engine/PhenomicEngine.swift` -- data cap application |
-| **Test**           | Parity test vectors with extreme biomarker values verify cap application                |
-| **Evidence**       | Config values in `EngineConfig.default.dataCaps`                                       |
-| **Hazard Link**    | HAZ-01                                                                                |
-| **Status**         | Implemented                                                                           |
-
-### REQ-35: Confidence Level Computation
-
-| Field              | Value                                                                                |
-|--------------------|--------------------------------------------------------------------------------------|
-| **Requirement ID** | REQ-35                                                                               |
-| **Description**    | Confidence level (1--5) computed from data availability: 1 (questionnaire only), 2 (biometrics), 3 (wearables), 4 (labs), 5 (genetics). Used by Inference Layer for discount factor selection. |
-| **Design**         | `InferenceLayer.getConfidenceLevel()` evaluates data flags in priority order. Higher confidence = higher discount factor = more trusted inferences. |
-| **Source Code**    | `Engine/InferenceLayer.swift:getConfidenceLevel()` (lines 34--45)                      |
-| **Test**           | Unit tests for each confidence level tier with appropriate data flags                   |
-| **Evidence**       | `EngineConfig.default.inferenceDiscountFactors` mapping                                 |
-| **Hazard Link**    | HAZ-11                                                                                |
-| **Status**         | Implemented                                                                           |
+| **Campo** | **Valor** |
+|---|---|
+| **ID do Requisito** | REQ-38 |
+| **Descrição** | Todas as sugestões dentro da aplicação devem estar enraizadas em bases clínicas documentadas de medicina preventiva, evitando alegações diagnósticas sem suporte. |
+| **Design** | `PROTOCOLS_CATALOG` define estruturas rígidas mapeando domínios, passos acionáveis, contraindicações e citações `evidenceAnchor` (ex: Attia, Lyon) limitando alucinação da IA. |
+| **Código-Fonte** | `aura-backend/src/health/aura-plus/protocols-catalog.ts` |
+| **Teste** | Verificação contra diretrizes do conselho médico consultivo. |
+| **Evidência** | Campos `evidenceAnchor`. |
+| **Vínculo de Perigo** | HAZ-02 |
+| **Status** | Implementado |
 
 ---
 
-## 4. Coverage Summary
+## 4. Resumo de Cobertura
 
-| Category              | Requirements | Implemented | Planned | Pending |
-|-----------------------|-------------|-------------|---------|---------|
-| Engine Core           | 12          | 12          | 0       | 0       |
-| Security              | 10          | 10          | 0       | 0       |
-| Data Management       | 7           | 7           | 0       | 0       |
-| Infrastructure        | 6           | 6           | 0       | 0       |
-| **Total**             | **35**      | **35**      | **0**   | **0**   |
+| **Categoria** | **Requisitos** | **Implementados** | **Planeados** | **Pendentes** |
+|---|---|---|---|---|
+| Avaliação Clínica (Avaliador Binário) | 8 | 8 | 0 | 0 |
+| IA Conversacional e Segurança Clínica | 8 | 8 | 0 | 0 |
+| Integração de Dados e Dispositivos | 4 | 4 | 0 | 0 |
+| Cibersegurança e Privacidade | 13 | 13 | 0 | 0 |
+| **Total** | **33** | **33** | **0** | **0** |
 
-## 5. Cross-Reference Index
+**Composição por Categoria:**
 
-### By Hazard
-
-| Hazard ID | Related Requirements                    |
-|-----------|-----------------------------------------|
-| HAZ-01    | REQ-01, REQ-12, REQ-13, REQ-14, REQ-15, REQ-29, REQ-34 |
-| HAZ-02    | (Mitigated by disclaimers -- see INTENDED_USE.md) |
-| HAZ-03    | REQ-07, REQ-33                          |
-| HAZ-04    | REQ-04, REQ-21                          |
-| HAZ-05    | REQ-19                                  |
-| HAZ-06    | REQ-02, REQ-12, REQ-30, REQ-32         |
-| HAZ-07    | REQ-10, REQ-13, REQ-25, REQ-26, REQ-28 |
-| HAZ-08    | REQ-01                                  |
-| HAZ-09    | REQ-07, REQ-16                          |
-| HAZ-10    | REQ-05, REQ-06, REQ-08, REQ-09, REQ-11, REQ-31 |
-| HAZ-11    | REQ-15, REQ-29, REQ-35                  |
-| HAZ-12    | REQ-03, REQ-22, REQ-32                  |
-| HAZ-13    | REQ-17, REQ-18                          |
-| HAZ-14    | REQ-01, REQ-24                          |
-| HAZ-15    | REQ-03                                  |
-| HAZ-16    | REQ-09, REQ-11, REQ-16                  |
-| HAZ-17    | REQ-02, REQ-22                          |
-| HAZ-18    | REQ-27, REQ-33                          |
-| HAZ-19    | REQ-13, REQ-28                          |
-| HAZ-20    | REQ-04, REQ-23                          |
-
-### By Source File
-
-| Source File                                      | Requirements                          |
-|--------------------------------------------------|---------------------------------------|
-| `Engine/PhenomicEngine.swift`                    | REQ-01, REQ-02, REQ-12, REQ-13, REQ-14, REQ-22, REQ-23, REQ-25, REQ-26, REQ-34 |
-| `Engine/EngineConfig.swift`                      | REQ-01, REQ-13, REQ-14, REQ-24, REQ-34 |
-| `Engine/InferenceLayer.swift`                    | REQ-15, REQ-35                        |
-| `Engine/ScorePersistence.swift`                  | REQ-32                                |
-| `Engine/Config/EngineConfigManager.swift`        | REQ-27                                |
-| `AuraMedical/Security/EngineAuditLogger.swift`   | REQ-03, REQ-21                        |
-| `AuraMedical/Security/PHIProtectionModifier.swift` | REQ-05                              |
-| `AuraMedical/Security/BiometricAuthManager.swift` | REQ-06, REQ-08                       |
-| `AuraMedical/Security/CertificatePinning.swift`  | REQ-07, REQ-33                        |
-| `AuraMedical/Security/AuraKeychain.swift`        | REQ-09                                |
-| `AuraMedical/Security/AppAttestManager.swift`    | REQ-11                                |
-| `AuraMedical/LocalData/SyncManager.swift`        | REQ-10, REQ-16                        |
-| `AuraMedical/Services/PhenomicService.swift`     | REQ-04, REQ-29                        |
-| `AuraMedical/Services/AuraBackendClient.swift`   | REQ-04, REQ-33                        |
-| `AuraMedical/Services/HealthKitSyncService.swift` | REQ-28                               |
-| `AuraMedical/ViewModels/AuthViewModel.swift`     | REQ-18, REQ-31                        |
+- **Avaliação Clínica (8):** REQ-01, REQ-02, REQ-12, REQ-13, REQ-14, REQ-24, REQ-25, REQ-29.
+- **IA Conversacional (8):** REQ-03, REQ-04, REQ-21, REQ-33, REQ-34, REQ-36, REQ-37, REQ-38.
+- **Integração de Dados (4):** REQ-10, REQ-15, REQ-28, REQ-32.
+- **Cibersegurança (13):** REQ-05, REQ-06, REQ-07, REQ-08, REQ-09, REQ-11, REQ-16, REQ-17, REQ-18, REQ-19, REQ-20, REQ-31, REQ-35.
 
 ---
 
-**Approval Signatures:**
+## 5. Índice de Referência Cruzada
 
-| Role                    | Name | Date | Signature |
-|-------------------------|------|------|-----------|
-| Quality Manager         |      |      |           |
-| Software Development Lead |    |      |           |
+### Por Perigo
+
+| **ID do Perigo** | **Requisitos Relacionados** |
+|---|---|
+| HAZ-01 | REQ-01, REQ-02, REQ-12, REQ-13, REQ-15, REQ-25, REQ-29, REQ-34 |
+| HAZ-02 | REQ-04, REQ-33, REQ-36, REQ-37, REQ-38 |
+| HAZ-03 | REQ-04, REQ-34 |
+| HAZ-04 | REQ-36, REQ-37 |
+| HAZ-05 | REQ-03, REQ-19, REQ-35 |
+| HAZ-06 | REQ-02, REQ-07, REQ-10 |
+| HAZ-07 | REQ-05, REQ-06, REQ-08, REQ-09, REQ-31 |
+| HAZ-08 | REQ-01, REQ-16, REQ-31 |
+| HAZ-09 | REQ-24 |
+| HAZ-10 | REQ-05, REQ-06, REQ-08, REQ-09, REQ-11, REQ-31 |
+| HAZ-11 | REQ-10, REQ-13, REQ-14, REQ-28, REQ-29 |
+| HAZ-12 | REQ-03, REQ-21 |
+| HAZ-13 | REQ-17, REQ-18, REQ-35 |
+| HAZ-14 | REQ-24 |
+| HAZ-15 | REQ-09, REQ-11, REQ-16 |
+| HAZ-16 | REQ-32 |
+| HAZ-17 | REQ-15, REQ-28 |
+
+### Por Requisito
+
+| **ID do Requisito** | **Perigos Mitigados** |
+|---|---|
+| REQ-01 | HAZ-01, HAZ-08 |
+| REQ-02 | HAZ-01, HAZ-06 |
+| REQ-03 | HAZ-05, HAZ-12 |
+| REQ-04 | HAZ-02, HAZ-03 |
+| REQ-05 | HAZ-07, HAZ-10 |
+| REQ-06 | HAZ-07, HAZ-10 |
+| REQ-07 | HAZ-06 |
+| REQ-08 | HAZ-07, HAZ-10 |
+| REQ-09 | HAZ-07, HAZ-10, HAZ-15 |
+| REQ-10 | HAZ-06, HAZ-11 |
+| REQ-11 | HAZ-10, HAZ-15 |
+| REQ-12 | HAZ-01 |
+| REQ-13 | HAZ-01, HAZ-11 |
+| REQ-14 | HAZ-11 |
+| REQ-15 | HAZ-01, HAZ-17 |
+| REQ-16 | HAZ-08, HAZ-15 |
+| REQ-17 | HAZ-13 |
+| REQ-18 | HAZ-13 |
+| REQ-19 | HAZ-05 |
+| REQ-20 | Nenhum (Regulatório) |
+| REQ-21 | HAZ-12 |
+| REQ-24 | HAZ-09, HAZ-14 |
+| REQ-25 | HAZ-01 |
+| REQ-28 | HAZ-11, HAZ-17 |
+| REQ-29 | HAZ-01, HAZ-11 |
+| REQ-31 | HAZ-07, HAZ-08, HAZ-10 |
+| REQ-32 | HAZ-16 |
+| REQ-33 | HAZ-02 |
+| REQ-34 | HAZ-01, HAZ-03 |
+| REQ-35 | HAZ-05, HAZ-13 |
+| REQ-36 | HAZ-02, HAZ-04 |
+| REQ-37 | HAZ-02, HAZ-04 |
+| REQ-38 | HAZ-02 |
+
+---
+
+**Assinaturas de Aprovação:**
+
+| **Função** | **Nome** | **Data** | **Assinatura** |
+|---|---|---|---|
+| Responsável Técnico (RT) | Dr. Alexandre Teixeira de Almeida | | |
+| Gestor de Qualidade | Frederico | | |
+| Líder de Desenvolvimento | Arthur Teixeira de Almeida | | |
