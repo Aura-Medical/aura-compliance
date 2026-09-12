@@ -39,7 +39,11 @@
 - **Sem bucket de Storage** — nenhum PDF de exame em repouso.
 - **Nenhum segredo versionado** em três repositórios (verificado).
 - **Trilha imutável**: `ai_audit_log` protegido por trigger contra UPDATE (CFM 2.454/2026 Art. 9º).
-- **Exclusão de conta**: ver `hipaa/ACCOUNT_DELETION.md`. ⚠️ Anomalia aberta — ANO-01.
+- **Exclusão de conta**: ver `hipaa/ACCOUNT_DELETION.md`. ✅ ANO-01 **fechada em 2026-09-12** —
+  a exclusão apaga `auth.users` e o dado do paciente, e **anonimiza** a trilha que a norma exige
+  preservar; meia exclusão responde `delete_partial` 500 em vez de dizer "pronto". Prova em
+  produção com `BEGIN`/`ROLLBACK`, resíduo 0. Guarda de drift permanente contra tabela nova
+  não coberta.
 
 ## 4. Integridade da cadeia de fornecimento
 
@@ -75,9 +79,12 @@ PostgREST**, nenhum alcançável pela API — e por isso invisíveis a 1.629 tes
 
 ## 7. Anomalias de segurança em aberto
 
-Rastreadas em `RESIDUAL_ANOMALIES.md`: ANO-01 (exclusão de conta), ANO-02 (App Attest gerado e
-não verificado no servidor), ANO-04 (webhook Garmin sem assinatura), ANO-05 (texto do paciente
-alcança observabilidade sem máscara).
+Rastreadas em `RESIDUAL_ANOMALIES.md`: ANO-02 (App Attest gerado e não verificado no servidor),
+ANO-04 (webhook Garmin sem assinatura), ANO-05 (texto do paciente alcança observabilidade sem
+máscara).
+
+**ANO-01 (exclusão de conta) foi fechada em 2026-09-12** e sai desta lista — o registro da
+correção, com a prova, fica em `RESIDUAL_ANOMALIES.md`.
 
 ## 8. Assinatura
 

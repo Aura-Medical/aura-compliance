@@ -1,515 +1,283 @@
-# Account Deletion Flow
+# Exclusão de conta — como funciona de verdade
 
 **Document ID:** AURA-POL-AD-001
-**Version:** 1.0
-**Effective Date:** 2026-03-27
-**Last Reviewed:** 2026-03-27
-**Next Review:** 2026-09-27
-**Owner:** Engineering Lead, AURAMEDICAL SERVICOS MEDICOS LTDA
+**Version:** 2.0 · **Effective Date:** 2026-09-12 · **Supersedes:** 1.0 (2026-03-27)
+**Last Reviewed:** 2026-09-12 · **Next Review:** 2027-03-12
+**Owner:** Responsável Técnico, AURAMEDICAL SERVIÇOS MÉDICOS LTDA
 **Classification:** Internal
 
 ---
 
-## 1. Purpose
+## 0. ⚠️ Por que esta revisão existe, e o que a 1.0 afirmava de errado
 
-This document provides end-to-end documentation of the account deletion flow in the Aura Medical platform. Account deletion is a mandatory feature required by:
+A versão 1.0 descrevia um **desenho pretendido**, não o sistema construído. Ela foi escrita antes da
+implementação e nunca foi conferida contra o banco. Isto está registrado aqui — e não apagado — porque
+um documento de conformidade que descreve função inexistente é pior do que um documento ausente: ele
+**produz confiança falsa** em quem audita.
 
-- **Apple App Store Review Guidelines** (Section 5.1.1) — Apps that support account creation must offer account deletion
-- **LGPD** (Art. 18, VI) — Right to deletion of personal data processed with consent
-- **HIPAA** — While HIPAA does not mandate deletion, it requires that retained data (audit logs) be maintained for compliance periods
+Conferido no banco de produção em **2026-09-12**, item por item:
 
-This document covers the complete flow from user initiation through final data purge, including all affected data stores and compliance considerations.
+| a 1.0 afirmava | o que existe de fato |
+|---|---|
+| cron diário `hard_delete_expired_accounts()` apagando contas após 30 dias | **A função não existe** (`pg_proc` → 0 linhas). O `pg_cron` está instalado, com **um** job, que não é este. **Nunca houve purga.** |
+| período de carência de 30 dias com recuperação por suporte | **Não existe.** Não havia o que purgar depois, então a conta "excluída" simplesmente **permanecia** |
+| endpoint `DELETE /api/users/me` | **Nunca existiu.** Até 2026-09-12 o app chamava a RPC **direto** do cliente |
+| `delete_my_account(target_user_id UUID)` | A função real **não tem parâmetro** — ela usa `auth.uid()` |
+| reautenticação (Face ID / senha) antes de excluir | **Não acontece.** Há um diálogo de confirmação, sem segundo fator |
+| apaga `daily_phenomic_scores`, `healthkit_summaries`, `push_tokens` | **Estas três tabelas não existem** no schema |
+| diálogo de confirmação prometendo "mantidos por 30 dias caso você mude de ideia" | O texto real **não promete prazo** (ver §3.2) — e ainda bem, porque o prazo não existia |
 
-## 2. Scope
-
-This procedure affects all data stores in the Aura Medical ecosystem:
-
-- iOS local storage (SwiftData, Keychain)
-- Supabase database (PostgreSQL)
-- Supabase Auth (user sessions, tokens)
-- Backend API state (if any)
-
----
-
-## 3. iOS Client Flow
-
-### 3.1 User Interface
-
-**Navigation path:** Voce (Profile tab) > Configuracoes (Settings) > "Apagar minha conta"
-
-#### 3.1.1 Step 1: Initiation
-
-The user taps "Apagar minha conta" (Delete my account) in the Settings screen.
-
-#### 3.1.2 Step 2: Confirmation Dialog
-
-A confirmation dialog is presented with the following content (PT-BR):
-
-```
-Titulo: Apagar minha conta
-
-Voce tem certeza que deseja apagar sua conta?
-
-Esta acao ira:
-- Remover todos os seus dados de saude (pontuacoes, exames, biometria)
-- Cancelar qualquer assinatura ativa
-- Remover seu acesso ao aplicativo
-
-Seus dados serao mantidos por 30 dias caso voce mude de ideia.
-Apos esse periodo, todos os dados serao permanentemente apagados.
-
-Registros de auditoria serao anonimizados e mantidos por obrigacao legal.
-
-[Cancelar]  [Apagar Conta]
-```
-
-The "Apagar Conta" button is styled as a destructive action (red text).
-
-#### 3.1.3 Step 3: Re-authentication
-
-Before proceeding, the user must re-authenticate:
-
-- If biometric auth is enabled: Face ID / Touch ID prompt
-- If not: Password re-entry
-
-This prevents unauthorized deletion if the device is unlocked.
-
-#### 3.1.4 Step 4: Backend Request
-
-Upon confirmation and re-authentication:
-
-```swift
-// AuraBackendClient.swift
-func deleteAccount() async throws {
-    let response = try await authenticatedRequest(
-        method: .DELETE,
-        path: "/api/users/me"
-    )
-    guard response.statusCode == 200 else {
-        throw AuraBackendError.deletionFailed
-    }
-}
-```
-
-#### 3.1.5 Step 5: Local Data Cleanup
-
-After successful backend response:
-
-```swift
-// AuthViewModel.swift — signOut() flow
-func signOut() {
-    // 1. Clear all SwiftData containers
-    clearSwiftData()
-
-    // 2. Clear Keychain
-    AuraKeychain.deleteAll()
-
-    // 3. Clear biometric auth state
-    BiometricAuthManager.shared.reset()
-
-    // 4. Sign out of Supabase Auth
-    Task {
-        try? await supabase.auth.signOut()
-    }
-
-    // 5. Reset navigation to login screen
-    isAuthenticated = false
-}
-```
-
-#### 3.1.6 Step 6: Redirect
-
-The user is redirected to the login/onboarding screen. The app is in a clean state.
-
-### 3.2 iOS Data Affected
-
-| Data Store | Action | Timing |
-|------------|--------|--------|
-| SwiftData — `LocalScore` | Delete all records | Immediate (Step 5) |
-| SwiftData — `LocalProfile` | Delete all records | Immediate (Step 5) |
-| SwiftData — `LocalBiometrics` | Delete all records | Immediate (Step 5) |
-| Keychain — auth tokens | Delete all items | Immediate (Step 5) |
-| Keychain — biometric preference | Delete | Immediate (Step 5) |
-| Keychain — App Attest key ID | Delete | Immediate (Step 5) |
-| UserDefaults | Clear app-specific keys | Immediate (Step 5) |
-| HealthKit data | **Not deleted** — owned by iOS, not by Aura | N/A |
-
-**Important:** HealthKit data is owned by the iOS Health app and is not deleted when the user deletes their Aura Medical account. The user can delete HealthKit data independently via the iOS Health app.
+O efeito prático do conjunto era a anomalia **ANO-01 / DIV-549**: a exclusão **desativava** em vez de
+apagar, `auth.users` sobrevivia, e **o mesmo login voltava e recuperava o perfil**. Corrigido em
+2026-09-12 (backend `eed5e99`, iOS `90c492f`). O que segue descreve o sistema **depois** da correção.
 
 ---
 
-## 4. Backend Flow
+## 1. Objetivo e base normativa
 
-### 4.1 API Endpoint
-
-```
-DELETE /api/users/me
-Authorization: Bearer <JWT>
-```
-
-**Authentication:** Valid Supabase JWT required. The endpoint uses the authenticated user's ID from the JWT — users can only delete their own account.
-
-### 4.2 Request Processing
-
-```typescript
-// routes/users.ts
-app.delete('/api/users/me', authMiddleware, async (c) => {
-  const user = c.get('user'); // From authMiddleware
-
-  // Call Supabase RPC with service client (elevated privileges)
-  const { error } = await supabaseService
-    .rpc('delete_my_account', { target_user_id: user.id });
-
-  if (error) {
-    logger.error({ userId: user.id, error }, 'Account deletion failed');
-    return c.json({ error: 'Deletion failed' }, 500);
-  }
-
-  logger.info({ userId: user.id }, 'Account deletion initiated');
-  return c.json({ message: 'Account scheduled for deletion' }, 200);
-});
-```
-
-### 4.3 Database RPC: `delete_my_account()`
-
-The `delete_my_account()` function is a PostgreSQL function that executes with `SECURITY DEFINER` privileges to perform cross-table operations.
-
-```sql
-CREATE OR REPLACE FUNCTION delete_my_account(target_user_id UUID)
-RETURNS void AS $$
-BEGIN
-  -- Verify the caller matches the target (defense in depth)
-  IF auth.uid() IS DISTINCT FROM target_user_id THEN
-    RAISE EXCEPTION 'Unauthorized: cannot delete another user account';
-  END IF;
-
-  -- 1. Soft-delete user profile
-  UPDATE user_profiles
-  SET deleted_at = NOW(),
-      updated_at = NOW()
-  WHERE id = target_user_id;
-
-  -- 2. Anonymize audit logs (retain for compliance, remove PII linkage)
-  UPDATE ai_audit_log
-  SET user_id = '00000000-0000-0000-0000-000000000000'::UUID
-  WHERE user_id = target_user_id;
-
-  -- 3. Delete health data (immediate, no hold period)
-  DELETE FROM daily_phenomic_scores WHERE user_id = target_user_id;
-  DELETE FROM biomarker_results WHERE user_id = target_user_id;
-  DELETE FROM healthkit_summaries WHERE user_id = target_user_id;
-  DELETE FROM questionnaire_responses WHERE user_id = target_user_id;
-
-  -- 4. Delete communication data
-  DELETE FROM chat_messages WHERE user_id = target_user_id;
-  DELETE FROM push_tokens WHERE user_id = target_user_id;
-
-  -- 5. Delete active sessions (force sign-out on all devices)
-  DELETE FROM auth.sessions WHERE user_id = target_user_id;
-  DELETE FROM auth.refresh_tokens WHERE user_id = target_user_id;
-
-  -- 6. Log the deletion event (with anonymized reference)
-  INSERT INTO ai_audit_log (
-    user_id,
-    operation,
-    engine_version,
-    input_hash,
-    created_at
-  ) VALUES (
-    '00000000-0000-0000-0000-000000000000'::UUID,
-    'account_deletion',
-    'system',
-    encode(sha256(target_user_id::text::bytea), 'hex'),
-    NOW()
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-### 4.4 Deferred Hard-Delete (30-Day Cron)
-
-A cron job runs daily to permanently delete accounts past the 30-day hold period:
-
-```sql
--- Scheduled via pg_cron: daily at 03:00 UTC
-CREATE OR REPLACE FUNCTION hard_delete_expired_accounts()
-RETURNS void AS $$
-DECLARE
-  deleted_count INTEGER;
-BEGIN
-  -- Delete user profiles past 30-day hold
-  WITH deleted AS (
-    DELETE FROM user_profiles
-    WHERE deleted_at IS NOT NULL
-      AND deleted_at < NOW() - INTERVAL '30 days'
-    RETURNING id
-  )
-  SELECT COUNT(*) INTO deleted_count FROM deleted;
-
-  -- Log the operation
-  IF deleted_count > 0 THEN
-    INSERT INTO ai_audit_log (
-      user_id,
-      operation,
-      engine_version,
-      input_hash,
-      created_at
-    ) VALUES (
-      '00000000-0000-0000-0000-000000000000'::UUID,
-      'hard_delete_expired_accounts',
-      'system',
-      encode(sha256(deleted_count::text::bytea), 'hex'),
-      NOW()
-    );
-  END IF;
-
-  -- Delete the Supabase Auth user record
-  -- Note: This permanently removes the user from auth.users
-  -- Must be done after profile deletion to avoid FK issues
-  DELETE FROM auth.users
-  WHERE id IN (
-    SELECT id FROM auth.users
-    WHERE id NOT IN (SELECT id FROM user_profiles)
-    AND created_at < NOW() - INTERVAL '30 days'
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Schedule
-SELECT cron.schedule(
-  'hard-delete-expired-accounts',
-  '0 3 * * *',
-  'SELECT hard_delete_expired_accounts()'
-);
-```
+- **Apple App Store Review Guidelines 5.1.1(v)** — app que permite criar conta deve permitir excluí-la
+  no próprio app. O revisor testa **à mão**.
+- **LGPD Art. 18, VI** — direito à eliminação dos dados tratados com consentimento.
+- **LGPD Art. 16** — o que a lei obriga a guardar **não** é eliminado; é o limite do direito acima.
+- **CFM 2.454/2026 Art. 9º** — a trilha de auditoria de IA tem de sobreviver.
 
 ---
 
-## 5. Complete Data Lifecycle
+## 2. A linha que governa o desenho
 
-### 5.1 Data Affected by Account Deletion
+**APAGA** o que é dado do paciente. **ANONIMIZA**, apontando para o usuário sentinela
+(`00000000-0000-0000-0000-000000000000`), o que é **trilha** que a norma exige preservar.
 
-| Data Type | Database Table | Action at Deletion | Hold Period | Final State |
-|-----------|---------------|-------------------|-------------|-------------|
-| User profile | `user_profiles` | Soft-delete (`deleted_at = NOW()`) | 30 days | Hard-deleted |
-| Auth user record | `auth.users` | Sessions deleted immediately | 30 days (tied to profile) | Hard-deleted |
-| Auth sessions | `auth.sessions` | Deleted immediately | None | Gone |
-| Auth refresh tokens | `auth.refresh_tokens` | Deleted immediately | None | Gone |
-| Daily phenomic scores | `daily_phenomic_scores` | Deleted immediately | None | Gone |
-| Lab results | `biomarker_results` | Deleted immediately | None | Gone |
-| HealthKit summaries | `healthkit_summaries` | Deleted immediately | None | Gone |
-| Questionnaire responses | `questionnaire_responses` | Deleted immediately | None | Gone |
-| Chat messages | `chat_messages` | Deleted immediately | None | Gone |
-| Push notification tokens | `push_tokens` | Deleted immediately | None | Gone |
-| Audit logs (SaMD) | `ai_audit_log` | Anonymized (`user_id` = null UUID) | **7 years** (anonymized) | Retained anonymized |
-| Order/prescription data | `orders` | Anonymized | **5 years** (legal req.) | Retained anonymized |
-| Local SwiftData | Device | Deleted immediately | None | Gone |
-| Keychain data | Device | Deleted immediately | None | Gone |
+*Apagar trilha não é exclusão — é perder a prova de que o tratamento foi lícito enquanto durou.*
 
-### 5.2 Data NOT Deleted
+Por isso `user_consents` e `research_consent_records` **são anonimizados, não apagados**: destruir o
+recibo de consentimento destruiria a prova da base legal do que já foi tratado. O que sobra é a versão
+do texto e a data, sem ligação com pessoa.
 
-| Data | Reason | Legal Basis |
-|------|--------|-------------|
-| Anonymized audit logs | HIPAA 164.530(j) — 6-year retention; CFR 21 Part 11 — SaMD records | LGPD Art. 16, I — legal obligation |
-| Anonymized order data | Brazilian healthcare record-keeping requirements | LGPD Art. 16, I — legal obligation |
-| Aggregated analytics | Already de-identified; no PII linkage | LGPD Art. 12 — anonymized data not subject to LGPD |
-| HealthKit data on device | Owned by iOS Health app, not Aura Medical | Outside Aura's data controller scope |
+---
 
-### 5.3 Deletion Timeline
+## 3. O fluxo, ponta a ponta
+
+### 3.1 Onde fica
+
+`Ajustes` → seção **Conta** → **"Excluir minha conta"** (um nível de profundidade, ao lado de "Sair").
+Botão destrutivo. Totalmente autosserviço — não requer contato com suporte.
+
+### 3.2 Confirmação (texto real, pt-BR)
+
+> **Excluir minha conta?**
+>
+> Esta ação é permanente. Seus dados não médicos serão excluídos e seus registros médicos serão
+> anonimizados, conforme a legislação aplicável.
+>
+> [Excluir permanentemente] · [Cancelar]
+
+**Não há reautenticação** (nem Face ID nem senha). É uma diferença consciente em relação à 1.0 e está
+registrada como tal; a mitigação atual é o diálogo destrutivo explícito.
+
+### 3.3 O app chama a rota
+
+`AuthViewModel.deleteAccount()` → `AuraBackendClient.deleteMyAccount()` →
+**`DELETE /api/aura-plus/me`** com JWT do Supabase.
+
+**Por que a rota, e não a RPC direto:** `delete_my_account()` roda como o próprio usuário e **não tem
+permissão sobre `auth.users`** — só a *service role* tem. Enquanto o app chamava a RPC direto, o dado ia
+embora e a linha de login ficava.
+
+### 3.4 O servidor, em duas metades, nesta ordem
+
+1. **`supabase.rpc('delete_my_account')`** — apaga dado de paciente, anonimiza a trilha.
+2. **`supabase.auth.admin.deleteUser(user.id)`** — apaga a linha de login.
+
+**A ordem é obrigatória.** `ai_audit_log` tem FK **CASCADE** para `auth.users`: apagar o login antes de
+anonimizar **apagaria a trilha do CFM junto, sem erro nenhum**. O caso 4 de
+`me-delete-account.test.ts` reprova a inversão.
+
+### 3.5 Respostas
+
+| situação | resposta | o que o app faz |
+|---|---|---|
+| as duas metades passaram | **204**, corpo vazio | limpa estado local, encerra sessão, volta ao login |
+| a RPC falhou | **500** `delete_failed` | **nada foi apagado**; alerta com "tente novamente" |
+| a RPC passou e `auth.users` sobreviveu | **500** `delete_partial` | o dado **já foi**; alerta manda falar com o suporte — **não** oferece repetir |
+
+Dizer 204 na meia exclusão seria o app afirmar uma exclusão que ficou pela metade. E até 2026-09-12 a
+falha era **muda**: a tela descartava o resultado e nunca lia a mensagem de erro que já existia.
+
+### 3.6 Limpeza local (após o 204)
+
+`signOut()` apaga os modelos SwiftData (`LocalScore`, `LocalProfile`, `LocalBiometrics`), zera o
+Keychain (`AuraKeychain.deleteAll()`), tranca o `BiometricAuthManager`, limpa o `HealthInsightsStore`
+e **cancela as notificações locais agendadas** (senão a janela de exame desta conta dispararia no
+aparelho depois que outra pessoa entrasse). Além disso, a exclusão limpa as chaves de `AppStorage` que
+um logout comum **preserva de propósito** (`aura_plus_view_mode`, `wearableRealConnection` e outras).
+
+**HealthKit não é apagado** — o dado é do app Saúde da Apple, não da Aura. O usuário o remove por lá.
+
+---
+
+## 4. O que é apagado e o que é anonimizado
+
+### 4.1 Apagado (dado do paciente)
+
+`aura_chat_message_feedback` · `aura_chat_messages` · `aura_chat_sessions` · `candidate_memory` ·
+`forgotten_memories_log` · `memory_extraction_errors` · `user_memory` · `wearable_daily_summaries` ·
+`wearable_sync_metadata` · `garmin_connections` · `health_snapshot_cache` · `device_tokens` ·
+`scheduled_notifications` · `notification_preferences` · `aura_plus_free_quota` · `subscriptions` ·
+`user_active_protocols` · `questionnaire_responses` (com `questionnaire_answers` em CASCADE) ·
+`biomarker_results` · `user_biometrics` · `kyc_session_log` · `patient_doctor_relationships` ·
+**`client_events`** · **`health_insights_cache`** · **`lab_intake_sessions`** · `doctor_profiles` ·
+`budget_debito` · `budget_ledger` · **`user_profiles`** · `auth.sessions` · `auth.refresh_tokens` ·
+e por fim **`auth.users`**, pela rota.
+
+As três em negrito no meio ficavam para trás — a função estava **4 meses atrás do schema**.
+
+### 4.2 Anonimizado (trilha, aponta para o sentinela)
+
+| tabela | base legal |
+|---|---|
+| `ai_audit_log` | CFM 2.454/2026 Art. 9º — auditoria de IA |
+| `user_consents`, `research_consent_records` | LGPD Art. 16 — prova da base legal do tratamento já ocorrido |
+| `consultations`, `clinical_notes`, `prescriptions`, `exam_orders`, `patient_anamnesis`, `chat_sessions`, `kyc_verifications`, `clinical_assessments` | registro do ato médico prestado |
+| `doctrine_changes_log`, `instrument_changes_log`, `clinical_flag_rules` | assinatura de curadoria clínica — quem assinou o quê precisa sobreviver a quem assinou |
+| `data_access_log`, `data_export_requests`, `chat_messages` | LGPD Art. 37 — registro das operações |
+
+### 4.3 Não há carência, e isso é intencional
+
+**A exclusão é imediata e definitiva.** Não há período de 30 dias, não há recuperação, não há
+restauração por suporte. A 1.0 prometia as três; nenhuma existia. Prometer carência exigiria construir
+a purga diferida **e** a autenticação de identidade para restaurar — e a alternativa honesta é a que
+está implementada: **apagar quando o usuário pede**.
+
+Consequência que o usuário precisa saber, e que o texto de confirmação já diz: **a ação é permanente.**
+
+---
+
+## 5. Prova
+
+Executada em **produção**, dentro de transação com `ROLLBACK`, sobre um usuário de teste criado para
+isto, com contagem por tabela antes e depois. Resultado:
 
 ```
-Day 0:  User requests account deletion
-        ├── iOS: Local data cleared immediately (SwiftData + Keychain)
-        ├── Backend: Health data deleted immediately
-        ├── Backend: User profile soft-deleted
-        ├── Backend: Audit logs anonymized
-        └── Backend: Sessions terminated
-
-Day 1-30: Grace period
-        ├── User can contact support to reverse deletion
-        ├── Profile exists with deleted_at set
-        └── No health data remains (already deleted)
-
-Day 30: Hard-delete cron runs
-        ├── User profile permanently deleted
-        ├── Auth user record deleted
-        └── Deletion logged in audit trail
+auth.users 0 · user_profiles 0 · user_memory 0 · client_events 0 ·
+health_insights_cache 0 · lab_intake_sessions 0 · consentimento anonimizado 1
+resíduo após o ROLLBACK: 0
 ```
 
----
+A rota foi provada **pela internet**, no ambiente publicado:
+`DELETE /api/aura-plus/me` sem token → **401**; rota inexistente de controle → **404**.
 
-## 6. Account Recovery (Grace Period)
+**Três defeitos só apareceram porque o caminho foi exercido de verdade** — nenhum deles seria visto por
+leitura de código:
 
-### 6.1 Recovery Process
-
-During the 30-day hold period, a user may request account recovery:
-
-1. User contacts support at suporte@auramedical.com
-2. Identity verification via email associated with the account
-3. Support executes account restoration:
-
-```sql
--- Restore soft-deleted account
-UPDATE user_profiles
-SET deleted_at = NULL,
-    updated_at = NOW()
-WHERE id = [user_id]
-  AND deleted_at IS NOT NULL
-  AND deleted_at > NOW() - INTERVAL '30 days';
-```
-
-4. User can sign in again and re-sync data from HealthKit
-5. **Note:** Health data (scores, labs, biometrics) deleted at Step 0 is NOT recoverable
-
-### 6.2 Limitations
-
-- Health scores, lab results, biometrics, questionnaire responses, and chat messages are deleted immediately and cannot be recovered
-- Only the user profile (name, email, preferences) is recoverable during the grace period
-- The user must re-sync HealthKit data and rebuild their health history
-- Audit logs remain anonymized even if the account is restored
+1. **29 FKs `NO ACTION`** apontam para `auth.users`; sete tabelas não cobertas bloqueariam o `DELETE`.
+2. **`auth.refresh_tokens.user_id` é `varchar`, não `uuid`** (o GoTrue guarda assim) — sem `::text` a
+   função **lança**.
+3. A **"lápide"** de `user_profiles` (nulificar o PII e manter a linha) foi uma invenção da primeira
+   tentativa de correção, e era **ela** quem fazia `DELETE FROM auth.users` falhar. Conferido em
+   `pg_constraint`: **zero tabelas referenciam `user_profiles`**. A linha é apagada.
 
 ---
 
-## 7. Compliance Verification
+## 6. Controle contra a próxima defasagem
 
-### 7.1 Apple App Store Compliance
+`src/health/aura-plus/__tests__/delete-account-drift.test.ts` cruza
+`information_schema.columns` com o `prosrc` da função e **reprova** quando aparece tabela nova com
+coluna de usuário que a função não menciona. Tabelas legitimamente fora do escopo ficam num mapa
+`ISENTAS` **explícito**, com motivo — isenção sem motivo escrito é defasagem disfarçada.
 
-| Requirement | Implementation | Status |
-|-------------|---------------|--------|
-| Account deletion must be available in-app | Settings > "Apagar minha conta" | Implemented |
-| Deletion must be easy to find | One level deep in Settings | Implemented |
-| Must delete associated data | All health data deleted immediately; profile within 30 days | Implemented |
-| Must cancel subscriptions | Included in deletion flow (future: StoreKit integration) | Planned |
-| Must work without contacting support | Fully self-service in-app | Implemented |
+Um segundo teste afirma o contrário do óbvio: que `ai_audit_log` e `user_consents` **continuam
+existindo** depois da exclusão, anonimizados. Se alguém "melhorar" a função apagando-os, este teste cai.
 
-### 7.2 LGPD Compliance
-
-| Requirement | Article | Implementation | Status |
-|-------------|---------|---------------|--------|
-| Right to deletion | Art. 18, VI | Complete deletion flow with 30-day grace | Implemented |
-| Data controller must respond within 15 days | Art. 18, Par. 5 | Immediate deletion (exceeds requirement) | Implemented |
-| Retention only with legal basis | Art. 16 | Audit logs retained per legal obligation (Art. 16, I) | Implemented |
-| Inform user about deletion consequences | Art. 18, Par. 1 | Confirmation dialog explains impact | Implemented |
-| Right to revocation of consent | Art. 18, IX | Deletion effectively revokes all consent | Implemented |
-
-### 7.3 HIPAA Compliance
-
-| Requirement | Regulation | Implementation | Status |
-|-------------|-----------|---------------|--------|
-| Retain documentation for 6 years | 164.530(j) | Audit logs anonymized and retained 7 years | Implemented |
-| Accounting of disclosures | 164.528 | Audit log entries preserved (anonymized) | Implemented |
-| PHI disposal | 164.310(d)(2)(i) | Health data hard-deleted; no remnants | Implemented |
+Era a ausência deste controle que deixou a função envelhecer 4 meses sem ninguém notar.
 
 ---
 
-## 8. Testing and Verification
+## 7. Conformidade
 
-### 8.1 Test Cases
+### 7.1 Apple 5.1.1(v)
 
-| Test Case | Expected Result | Verified |
-|-----------|----------------|----------|
-| User taps "Apagar minha conta" | Confirmation dialog appears | |
-| User confirms deletion | Backend receives DELETE request | |
-| After deletion: local SwiftData | All LocalScore, LocalProfile, LocalBiometrics records deleted | |
-| After deletion: Keychain | All Aura entries removed | |
-| After deletion: user redirected | Login/onboarding screen shown | |
-| After deletion: daily_phenomic_scores | All user's records deleted | |
-| After deletion: biomarker_results | All user's records deleted | |
-| After deletion: ai_audit_log | user_id set to null UUID | |
-| After deletion: auth.sessions | All user's sessions deleted | |
-| After 30 days: user_profiles | Profile hard-deleted by cron | |
-| Recovery within 30 days | Profile restored, health data NOT recovered | |
-| Re-authentication required | Biometric/password prompt before deletion | |
+| requisito | implementação | estado |
+|---|---|---|
+| exclusão disponível no app | Ajustes → Conta → "Excluir minha conta" | ✅ |
+| fácil de achar | um nível de profundidade | ✅ |
+| apaga os dados associados | §4.1, incluindo `auth.users` | ✅ |
+| funciona sem contatar o suporte | autosserviço completo | ✅ |
+| cancelamento de assinatura | a linha de `subscriptions` é apagada; **a assinatura em si só o usuário cancela**, na App Store | ⚠️ ver nota |
+| falha visível ao usuário | alerta com o motivo (corrigido em 2026-09-12) | ✅ |
 
-### 8.2 Monitoring
+> **Nota sobre assinatura.** A 1.0 registrava "Planned — StoreKit integration", como se fosse uma
+> pendência de engenharia. Não é: **a Apple não expõe API que permita ao app cancelar a assinatura do
+> usuário** — `AppStore.showManageSubscriptions` apenas *abre a tela dela*. O app tem esse caminho
+> ("Ajustes → Gerenciar Assinatura"), mas **o diálogo de exclusão não avisa que a cobrança continua**
+> se o usuário não cancelar por lá. Conferido em 2026-09-12: nenhuma copy do app diz isso.
+> **Lacuna aberta — DIV-555**, e é a que mais provavelmente vira reclamação de cobrança.
 
-- Monitor `ai_audit_log` for `account_deletion` operations
-- Monitor `hard_delete_expired_accounts` cron job success/failure
-- Alert on deletion failures (HTTP 500 from DELETE /api/users/me)
-- Quarterly audit: verify no orphaned data exists for deleted accounts
+### 7.2 LGPD
 
----
+| requisito | artigo | implementação |
+|---|---|---|
+| direito à eliminação | Art. 18, VI | exclusão imediata e definitiva (§4) |
+| prazo de resposta | Art. 18, §5º | imediato — supera o exigido |
+| retenção só com base legal | Art. 16 | §4.2, tabela por tabela |
+| informar a consequência | Art. 18, §1º | o diálogo diz que é permanente |
+| revogação de consentimento | Art. 18, IX | a exclusão revoga; o **recibo** do consentimento passado é preservado anonimizado |
 
-## 9. Error Handling
+### 7.3 CFM / SaMD
 
-### 9.1 Client-Side Errors
-
-| Error | User-Facing Message (PT-BR) | Recovery |
-|-------|------------------------------|----------|
-| Network failure | "Nao foi possivel conectar ao servidor. Tente novamente." | Retry button |
-| Backend 500 | "Erro ao processar sua solicitacao. Tente novamente mais tarde." | Retry later |
-| Auth failure (re-auth) | "Autenticacao falhou. Verifique suas credenciais." | Re-enter credentials |
-| Backend timeout | "O servidor demorou para responder. Tente novamente." | Retry button |
-
-### 9.2 Server-Side Errors
-
-| Error | Handling | Alert |
-|-------|----------|-------|
-| RPC failure | Return 500, log error with user_id | Immediate alert to engineering |
-| Partial deletion (some tables fail) | Transaction rollback; return 500 | P1 alert — data consistency issue |
-| Cron job failure | Log error; retry on next run | Alert if fails 3 consecutive days |
-
-### 9.3 Data Consistency
-
-The `delete_my_account()` RPC runs as a single transaction. If any step fails:
-
-- The entire transaction is rolled back
-- The user's account remains active
-- The error is logged
-- The user receives an error message and can retry
+| requisito | implementação |
+|---|---|
+| trilha de auditoria de IA preservada (2.454/2026 Art. 9º) | `ai_audit_log` anonimizado, **nunca apagado**; a ordem das duas metades existe para garantir isto |
+| registro do ato médico | anonimizado, preservado (§4.2) |
 
 ---
 
-## 10. Sequence Diagram
+## 8. Casos de teste
 
-```
-User                    iOS App                 Backend API            Supabase DB
- |                        |                        |                      |
- |-- Tap "Apagar" ------->|                        |                      |
- |                        |-- Show confirmation --->|                      |
- |-- Confirm ------------>|                        |                      |
- |                        |-- Re-auth prompt ------>|                      |
- |-- Authenticate ------->|                        |                      |
- |                        |                        |                      |
- |                        |-- DELETE /api/users/me ->|                     |
- |                        |                        |-- RPC delete_my_account()
- |                        |                        |                      |
- |                        |                        |    Soft-delete profile |
- |                        |                        |    Anonymize audits   |
- |                        |                        |    Delete health data |
- |                        |                        |    Delete sessions    |
- |                        |                        |                      |
- |                        |                        |<-- Success -----------|
- |                        |<-- 200 OK --------------|                      |
- |                        |                        |                      |
- |                        |-- Clear SwiftData       |                      |
- |                        |-- Clear Keychain        |                      |
- |                        |-- Sign out Supabase     |                      |
- |                        |                        |                      |
- |<-- Login screen -------|                        |                      |
- |                        |                        |                      |
- |                        |            [30 days later - cron]              |
- |                        |                        |-- hard_delete_expired |
- |                        |                        |    Delete profile     |
- |                        |                        |    Delete auth.users  |
-```
+| caso | esperado | onde |
+|---|---|---|
+| sem `Authorization` | 401 | `me-delete-account.test.ts` #1 |
+| as duas metades passam | 204, corpo vazio | #2 |
+| `auth.users` sobrevive | 500 `delete_partial`, nunca 204 | #3 |
+| a RPC vem **antes** de `deleteUser` | ordem exata | #4 |
+| RPC falha → `auth.users` **não é tocado** | 500 `delete_failed`, zero chamadas | #5 |
+| tabela nova com `user_id` não coberta | suíte reprova | `delete-account-drift.test.ts` |
+| `ai_audit_log` / `user_consents` sobrevivem anonimizados | presentes após a exclusão | idem |
+| exclusão de ponta a ponta no banco real | resíduo 0 (§5) | prova manual com `ROLLBACK` |
+| **prova por cabo no aparelho** | conta some, app volta ao login | ⏳ **pendente** — destrutiva por natureza: roda em **conta descartável**, nunca em conta real |
 
 ---
 
-## 11. Related Documents
+## 9. Erros e monitoração
 
-- [DATA_RETENTION.md](DATA_RETENTION.md) — Retention periods for each data type
-- [BREACH_RESPONSE.md](BREACH_RESPONSE.md) — Breach procedures (relevant if deletion fails and data is exposed)
-- [BAA_STATUS.md](BAA_STATUS.md) — Vendor data handling obligations upon account deletion
-- `AuraMedical/Security/AuraKeychain.swift` — Keychain cleanup implementation
-- `AuraMedical/Security/BiometricAuthManager.swift` — Biometric state reset
-- `AuraMedical/LocalData/SyncManager.swift` — Local data management
-- `AuraMedical/Services/AuraBackendClient.swift` — Backend API client
+| erro | resposta | o que o usuário vê |
+|---|---|---|
+| rede indisponível | — | "Não foi possível excluir sua conta. Tente novamente." |
+| RPC falhou | 500 `delete_failed` | idem (nada foi apagado — repetir é seguro) |
+| `auth.users` sobreviveu | 500 `delete_partial` | "Seus dados foram excluídos, mas o acesso à conta ainda não foi encerrado. Fale com o suporte antes de criar uma conta nova." |
+
+O log do servidor registra `userId` e o erro, **sem PHI**. `delete_partial` é a única condição que
+exige intervenção humana e deve ser tratada como incidente de dado: a conta ficou sem dado e com login.
 
 ---
 
-## Revision History
+## 10. Documentos relacionados
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2026-03-27 | Engineering Lead | Initial version |
+- [`../samd/RESIDUAL_ANOMALIES.md`](../samd/RESIDUAL_ANOMALIES.md) — ANO-01 (DIV-549), com a prova
+- [`../samd/SECURITY_ARCH.md`](../samd/SECURITY_ARCH.md) §3
+- [`DATA_RETENTION.md`](DATA_RETENTION.md) — períodos por tipo de dado
+- [`BREACH_RESPONSE.md`](BREACH_RESPONSE.md)
+- `supabase/migrations/20260912_01_delete_my_account_v3.sql` (+ rollback irmão, que **declara** que
+  reintroduz a não-conformidade)
+- `src/health/aura-plus/me-routes.ts` — a rota
+- `AuraMedical/ViewModels/AuthViewModel.swift` · `AuraMedical/Views/Settings/SettingsView.swift`
+- `Packages/AuraMedicalCore/Sources/AuraMedicalCore/Services/AuraBackendClient.swift`
+
+---
+
+## Histórico de revisões
+
+| Versão | Data | Autor | Mudanças |
+|---|---|---|---|
+| 1.0 | 2026-03-27 | Engineering Lead | Versão inicial — **descrevia o desenho pretendido, não o construído** (§0) |
+| 2.0 | 2026-09-12 | Responsável Técnico | Reescrita contra o sistema real, conferido no banco de produção. Registra o que a 1.0 afirmava de errado em vez de apagar. Documenta a correção da ANO-01 (DIV-549): a exclusão passa a apagar `auth.users`, as três tabelas que faltavam entram, `user_consents` muda de apagar para anonimizar, e a falha deixa de ser silenciosa no app. Remove a carência de 30 dias, a recuperação e o cron — **nenhum dos três existia** |

@@ -57,10 +57,16 @@ falsificação.
 
 ## 4. Duas coisas do produto que a decisão de hoje torna urgentes
 
-**ANO-06 sobe de prioridade.** O eixo movimento serve **zero fabricado como medida** para usuário
-de Apple Watch. Num produto de bem-estar isso é bug; num **SaMD que classifica**, é dado ausente
-apresentado como dado medido — o mesmo padrão do HAZ-01. **É a anomalia que eu consertaria
-primeiro**, antes de qualquer outra da lista.
+**ANO-06 — ✅ CONSERTADA em 2026-09-12** (backend `86110dc`). O eixo movimento servia **zero
+fabricado como medida** para usuário de Apple Watch, e a regra de sedentarismo do `opener.ts`
+consumia isso: **quem se exercitava todo dia era sinalizado como sedentário**. Num produto de
+bem-estar seria bug; num **SaMD que classifica**, era dado ausente apresentado como dado medido —
+o mesmo padrão do HAZ-01. Era a anomalia a consertar primeiro, e foi. Zero MEDIDO continua
+valendo zero; o conserto separa ausência de zero, não suprime sedentarismo real.
+
+**ANO-01 — ✅ FECHADA em 2026-09-12.** A exclusão de conta passou a apagar de verdade (a linha de
+login sobrevivia). Fecha a pendência de LGPD Art. 18, VI e a diretriz 5.1.1(v) da Apple, que é
+testada à mão na revisão da loja.
 
 **O formulário da Apple muda de resposta.** Com SaMD Classe II declarado, responder "No" ao
 formulário de dispositivo médico regulado passa a ser inconsistente com o que a empresa declara à
