@@ -5,7 +5,7 @@
 defeitos conhecidos) não resolvidos com análise de risco"*
 
 > **A fonte é um registro vivo, não uma lista feita para este documento.** O produto mantém
-> `docs/dividas/REGISTRO.md` (555 itens: 399 abertos · 153 fechados · 3 com risco aceito), com ID
+> `docs/dividas/REGISTRO.md` (556 itens: 400 abertos · 153 fechados · 3 com risco aceito), com ID
 > único nunca reusado, severidade, histórico datado e prova de fechamento. Este documento é o
 > **recorte clínico e de segurança** dele: os itens cujo pior caso alcança o usuário.
 >
