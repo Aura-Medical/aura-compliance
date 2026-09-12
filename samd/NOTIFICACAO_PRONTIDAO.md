@@ -1,5 +1,22 @@
 # Prontidão para a notificação — o que está pronto, o que falta, e o que eu não escrevi
 
+> ## ⛔ ADIADA — 2026-09-12, fim do dia
+>
+> A notificação **não foi protocolada** e está **sem data**. O portal recusou por falta de **AFE**
+> (que exige licença sanitária, que exige endereço físico; a empresa está em escritório virtual), e
+> o §7 do formulário exigiria o RL e o RT declararem, sob o art. 273 do Código Penal, conformidade
+> com a RDC 546/2021 e a RDC 665/2022 — enquanto usabilidade, compatibilidade e V&V **não foram
+> executados**.
+>
+> **Decisão do RT:** adiar a notificação, **manter** as funções que classificam, e **remover as
+> declarações** de CDSS/SaMD do app e dos termos. O estado resultante é **comportamento de SaMD com
+> declarações de bem-estar**, e isso está registrado como tal — ver `INTENDED_USE.md` §Emenda 5.1 e
+> `~/Documents/Claude/Projects/Aura/docs/decision-enquadramento-mvp-2026-09-12.md`.
+>
+> **Gatilho para retomar:** endereço próprio → licença sanitária → AFE → os três relatórios
+> executados. O levantamento abaixo continua válido e é o ponto de partida quando isso acontecer.
+
+
 **Data:** 2026-09-12 · **Para:** RT · **Decisão aplicada:** Versão B — CDSS / SaMD Classe II
 
 ---

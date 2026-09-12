@@ -2,7 +2,7 @@
 
 **ID do Documento:** IU-001
 
-**Revisão:** 5.0 — indicação de uso resolvida (CDSS/SaMD Classe II)
+**Revisão:** 5.1 — notificação ADIADA por decisão do RT (ver o bloco ⛔ abaixo)
 
 **Data:** 2026-09-12 (rev. 4.0 em 2026-04-10)
 
@@ -11,6 +11,58 @@
 **Fabricante:** AURAMEDICAL SERVICOS MEDICOS LTDA — CNPJ 63.556.151/0001-40
 
 **Classificação:** SaMD Classe II (Anvisa RDC 657/2022), IMDRF Categoria II
+
+---
+
+## ⛔ EMENDA 5.1 — 2026-09-12, fim do dia: a notificação foi ADIADA, e o produto NÃO mudou
+
+**Leia isto antes de qualquer coisa abaixo.** A rev. 5.0, escrita algumas horas antes, resolveu a
+contradição do documento escolhendo a **Versão B (CDSS/SaMD Classe II)** e foi escrita para
+sustentar uma notificação que seria protocolada no mesmo dia. **Ela não foi.**
+
+**O que aconteceu:** o portal da ANVISA recusou o peticionamento por falta de **AFE**, que exige
+licença sanitária do estabelecimento, que exige endereço físico — e a empresa opera em escritório
+virtual. O formulário pede o número da AFE em **§2.10** e em **§3.1**.
+
+**E havia razão independente para não insistir:** o §7 do formulário é assinado pelo RL **e** pelo
+RT sob a Lei 6.437 e o **art. 273 do Código Penal**, declarando conformidade com a RDC 546/2021 e a
+RDC 665/2022. O relatório de usabilidade (IEC 62366-1), os testes de compatibilidade e o relatório
+de V&V **não foram executados** (`DOSSIE_GAP_ART11.md`). Notificar hoje seria declarar verdadeiro o
+que ainda não é.
+
+**A decisão do RT, em três partes:**
+
+1. **Notificação adiada, sem data.** Gatilho nomeado para retomar: endereço próprio → licença
+   sanitária → AFE → os três relatórios executados.
+2. **As funções que classificam contra limiar clínico FICAM — todas.** Carga alostática, PREVENT
+   (AHA 2024), selos Ótimo/Normal/Fora da faixa, PHQ-9/GAD-7/PSQI/FINDRISC pontuados e
+   classificados. Palavras do RT: *"ficam — assumo o risco"*.
+3. **As DECLARAÇÕES de CDSS/SaMD saíram** do app (`AvisoLegalView`) e dos termos publicados
+   (`aura.med/pt/termos` e `/en`).
+
+**⚠️ O estado resultante não é a Versão A nem a Versão B — é comportamento da Versão B com
+declarações da Versão A.** Está escrito aqui, sem maquiagem, porque um dossiê que esconde isso é
+pior do que um dossiê ausente. A exposição é administrativa (Lei 6.437: advertência, multa,
+suspensão), recai sobre a empresa e sobre o RT, e a decisão é dele como responsável técnico e
+fabricante.
+
+**Medida que fundamentou a decisão** (levantamento adversarial no código real, 45 agentes, refutador
+independente por achado, padrão *na dúvida refuta*): **40 achados · 10 refutados · 28 sobreviveram**
+como funções fora do carve-out de bem-estar — **27 visíveis ao usuário, 29 no MVP gratuito**. Ou
+seja: a Versão A **não estava disponível** sem desmontar o produto. Não era questão de redação.
+
+**Caminho aprovado que reduz a distância sem custar produto** (agendado para depois da submissão,
+DIV-559): a **remoldagem de voz** — o app deixa de *julgar* (*"sua Lp(a) está fora da faixa, risco
+alto"*) e passa a *atribuir* (o número do paciente ao lado de uma referência nomeada e citada).
+Muda o autor da afirmação. Cobre os exames e, com um argumento melhor ainda, os instrumentos — que
+apenas **reportam o corte que o autor do instrumento publicou**. **Não cobre** a carga alostática
+nem o PREVENT: os dois produzem um número **novo** sobre a pessoa.
+
+**Decisão completa:** `~/Documents/Claude/Projects/Aura/docs/decision-enquadramento-mvp-2026-09-12.md`
+
+> O texto abaixo (§1 em diante) descreve o produto e permanece **tecnicamente correto** — ele
+> descreve o que o software faz, e o software não mudou. O que deixou de valer é a **conclusão
+> regulatória** da rev. 5.0 de que isso seria notificado agora.
 
 ---
 
