@@ -121,9 +121,20 @@ O texto exibido ao utilizador na tela de consentimento DEVE conter:
 
 ### 4.1 Elementos Obrigatórios
 
-1. **Identificação do Controlador:** Auramedical Tecnologia Ltda.
+1. **Identificação do Controlador e Responsável Clínica:**
+   - *Controlador LGPD (operador do app e contrato Apple)*: Auramedical Tecnologia Ltda.
+     > ⚠️ **A ATUALIZAR (2026-09-12).** O controlador passa a ser a AURAMEDICAL
+     > SERVICOS MEDICOS LTDA (CNPJ 63.556.151/0001-40). Esta linha **não foi
+     > trocada ainda de propósito**: ela é texto de CONSENTIMENTO já exibido a
+     > 15 titulares, e trocar o controlador num consentimento vigente não é
+     > edição — é mudança de base legal, que pede versão nova do texto e nova
+     > coleta. Entra junto com a v1.2 (que já precisa sair por outros dois erros
+     > de fato: nomeia "Claude Haiku 4.5" quando o chat roda Sonnet 4.6, e
+     > afirma "sem armazenamento do texto bruto" quando `aura_chat_messages`
+     > guarda verbatim).
+   - *Responsável pelos atos médicos e pela classificação CREMESP Telessaúde*: AURAMEDICAL SERVIÇOS MÉDICOS LTDA (CNPJ 63.556.151/0001-40; inscrição CREMESP 1041601; Responsável Técnico: Dr. Alexandre Teixeira de Almeida, CRM-SP 213039).
 2. **Finalidade Específica:** "Processar seus dados de saúde através de Inteligência Artificial conversacional para fornecer insights personalizados de longevidade e bem-estar."
-3. **Identificação do Subprocessador:** "Seus dados serão processados pela Anthropic, Inc. (EUA) através do modelo Claude."
+3. **Identificação do Subprocessador:** "Seus dados serão processados pela Anthropic, Inc. (EUA) através do modelo Claude Haiku 4.5."
 4. **Dados Processados:** "Dados do seu perfil de saúde, resultados laboratoriais, dados de wearables e suas mensagens no chat."
 5. **Garantias de Segurança:** "Suas interações são registradas com hash criptográfico (SHA-256) para fins de auditoria, sem armazenamento do conteúdo bruto das conversas."
 6. **Direito de Revogação:** "Você pode revogar este consentimento a qualquer momento em Configurações > Privacidade. A revogação não afeta o uso dos demais recursos do app."

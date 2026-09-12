@@ -5,7 +5,7 @@
 **Effective Date:** 2026-03-27
 **Last Reviewed:** 2026-03-27
 **Next Review:** 2026-09-27
-**Owner:** Security Officer, Auramedical Tecnologia
+**Owner:** Security Officer, AURAMEDICAL SERVICOS MEDICOS LTDA
 **Classification:** Internal — Confidential
 
 ---
@@ -343,7 +343,7 @@ proteger seus dados.
 
 Atenciosamente,
 Equipe Aura Medical
-Auramedical Tecnologia
+AURAMEDICAL SERVICOS MEDICOS LTDA
 ```
 
 ### 8.2 HIPAA Notification (If Applicable)
@@ -398,7 +398,7 @@ your data.
 
 Sincerely,
 Aura Medical Team
-Auramedical Tecnologia
+AURAMEDICAL SERVICOS MEDICOS LTDA
 ```
 
 ### 8.3 Notification Log

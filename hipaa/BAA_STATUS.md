@@ -5,7 +5,7 @@
 **Effective Date:** 2026-03-27
 **Last Reviewed:** 2026-03-27
 **Next Review:** 2026-09-27
-**Owner:** Legal / Compliance, Auramedical Tecnologia
+**Owner:** Legal / Compliance, AURAMEDICAL SERVICOS MEDICOS LTDA
 **Classification:** Internal
 
 ---

@@ -5,7 +5,7 @@
 **Effective Date:** 2026-03-27
 **Last Reviewed:** 2026-03-27
 **Next Review:** 2026-09-27
-**Owner:** Data Protection Officer, Auramedical Tecnologia
+**Owner:** Data Protection Officer, AURAMEDICAL SERVICOS MEDICOS LTDA
 **Classification:** Internal
 
 ---

@@ -8,7 +8,7 @@
 
 **Produto:** Aura Medical iOS Application & Aura+ Backend (v1.0.0)
 
-**Fabricante:** Auramedical Tecnologia Ltda.
+**Fabricante:** AURAMEDICAL SERVICOS MEDICOS LTDA — CNPJ 63.556.151/0001-40
 
 **Responsável Técnico:** Dr. Alexandre Teixeira de Almeida
 
@@ -17,6 +17,15 @@
 **Norma:** RDC 665/2022 Capítulo VI — Rastreabilidade e Registro Mestre de Produto
 
 ---
+
+> **Migração de titularidade — 2026-09-12.** O fabricante/controlador passa de
+> *Auramedical Tecnologia Ltda.* para **AURAMEDICAL SERVICOS MEDICOS LTDA**
+> (CNPJ 63.556.151/0001-40), por decisão do RT. A empresa médica já carrega os CNAEs de
+> software no objeto social — 62.02-3-00 e 62.03-1-00 (desenvolvimento e
+> licenciamento de programas de computador) — além do CNAE médico principal
+> 86.30-5-03, então ela pode ser fabricante de SaMD **e** prestadora do ato
+> médico. Isso elimina a inconsistência futura entre o titular da conta da App
+> Store e o prestador do serviço (App Review 5.1.1(ix)).
 
 ## 1. Propósito
 

@@ -33,7 +33,7 @@ Este SOP aplica-se a qualquer evento que resulte em:
 | **Incidente de Segurança** | Qualquer evento confirmado ou suspeito que comprometa a confidencialidade, integridade ou disponibilidade de dados pessoais. |
 | **PHI** | Dados Pessoais Sensíveis de Saúde conforme LGPD Art. 5, II — dados relativos à saúde. |
 | **ANPD** | Autoridade Nacional de Proteção de Dados — órgão regulador da LGPD. |
-| **Controlador** | Auramedical Tecnologia Ltda. — pessoa jurídica responsável pelas decisões de tratamento de dados. |
+| **Controlador** | AURAMEDICAL SERVICOS MEDICOS LTDA (CNPJ 63.556.151/0001-40) — pessoa jurídica responsável pelas decisões de tratamento de dados. |
 | **Encarregado (DPO)** | Frederico — responsável por comunicações com a ANPD e titulares. |
 
 ## 4. Equipe de Resposta a Incidentes

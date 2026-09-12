@@ -10,9 +10,18 @@
 
 ---
 
+> **Migração de titularidade — 2026-09-12.** O fabricante/controlador passa de
+> *Auramedical Tecnologia Ltda.* para **AURAMEDICAL SERVICOS MEDICOS LTDA**
+> (CNPJ 63.556.151/0001-40), por decisão do RT. A empresa médica já carrega os CNAEs de
+> software no objeto social — 62.02-3-00 e 62.03-1-00 (desenvolvimento e
+> licenciamento de programas de computador) — além do CNAE médico principal
+> 86.30-5-03, então ela pode ser fabricante de SaMD **e** prestadora do ato
+> médico. Isso elimina a inconsistência futura entre o titular da conta da App
+> Store e o prestador do serviço (App Review 5.1.1(ix)).
+
 ## Declaração
 
-A **Auramedical Tecnologia Ltda.**, na qualidade de fabricante do produto abaixo identificado, declara sob sua inteira responsabilidade que o produto atende aos requisitos essenciais de segurança e desempenho aplicáveis, conforme a legislação sanitária vigente.
+A **AURAMEDICAL SERVICOS MEDICOS LTDA** (CNPJ 63.556.151/0001-40), na qualidade de fabricante do produto abaixo identificado, declara sob sua inteira responsabilidade que o produto atende aos requisitos essenciais de segurança e desempenho aplicáveis, conforme a legislação sanitária vigente.
 
 ## Identificação do Produto
 
@@ -32,7 +41,9 @@ A **Auramedical Tecnologia Ltda.**, na qualidade de fabricante do produto abaixo
 
 | Campo | Informação |
 |---|---|
-| **Razão Social** | Auramedical Tecnologia Ltda. |
+| **Razão Social** | AURAMEDICAL SERVICOS MEDICOS LTDA |
+| **CNPJ** | 63.556.151/0001-40 |
+| **Endereço** | R. Pais Leme, 215, Conj. 1713 — Pinheiros, São Paulo/SP, CEP 05.424-150 |
 | **Responsável Técnico** | Dr. Alexandre Teixeira de Almeida |
 | **Encarregado de Dados (DPO)** | Frederico |
 | **Gerência Executiva** | Arthur Teixeira de Almeida |

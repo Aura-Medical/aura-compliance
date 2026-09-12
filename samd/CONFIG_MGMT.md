@@ -102,7 +102,14 @@ A infraestrutura de build do iOS é gerada dinamicamente para evitar conflitos d
 | 4 | `xcodebuild archive` | Cria o arquivo de release para assinatura. |
 
 - **Identificador:** `med.aura.medical`
-- **Team ID:** RZ9WFC8ZMG (Auramedical Tecnologia)
+- **Team ID:** RZ9WFC8ZMG — titular **Auramedical Tecnologia da Informação LTDA**
+  > ⚠️ **PENDÊNCIA DE MIGRAÇÃO (2026-09-12).** O fabricante deste dossiê passou a
+  > ser a AURAMEDICAL SERVICOS MEDICOS LTDA, mas a **conta da App Store continua
+  > da empresa de tecnologia** — este campo diz o que É, não o que será. Migrar
+  > o dossiê não migra a conta: transferir app entre contas de desenvolvedor é
+  > processo próprio da Apple, com condições, e conviria resolvê-lo ANTES da
+  > primeira submissão. Enquanto a linha acima não mudar, o titular da loja e o
+  > fabricante declarado são entidades diferentes.
 
 ### 5.2 Build Backend
 
