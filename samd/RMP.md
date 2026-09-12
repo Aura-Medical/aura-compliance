@@ -87,6 +87,18 @@ Este documento constitui o Registro Mestre de Produto (RMP) da Aura Medical, con
 | 23 | Logs de Auditoria de IA | Tabela `ai_audit_log` (Supabase) | RLS + Retenção 5 anos |
 | 24 | Registros de Consentimento | Tabela `user_consents` (Supabase) | RLS + Retenção 5 anos |
 
+## 3.4 Documentos acrescentados em 2026-09-12 (Art. 11, Classe II)
+
+| Documento | Cobre |
+|---|---|
+| `CLINICAL_EVIDENCE.md` | Cap. 4 — Resumo de Evidência Clínica e Literatura Relevante |
+| `SECURITY_ARCH.md` | Cap. 3 — Arquitetura de cibersegurança |
+| `RESIDUAL_ANOMALIES.md` | Cap. 3 — Anomalias residuais com análise de risco |
+| `MANUFACTURING.md` | Cap. 1, 2 e 6 — fabricação, componentes, firmware N/A, histórico de comercialização, versão |
+| `DOSSIE_GAP_ART11.md` | Levantamento item a item contra o Art. 11 |
+| `INTENDED_USE_DECISAO.md` | Registro da decisão CDSS vs bem-estar |
+| `NOTIFICACAO_PRONTIDAO.md` | O que bloqueia notificar × o que bloqueia a inspeção |
+
 ## 4. Itens Pendentes
 
 | Item | Dependência | Responsável |
@@ -94,6 +106,10 @@ Este documento constitui o Registro Mestre de Produto (RMP) da Aura Medical, con
 | VV_REPORT.md (Relatório de V&V) | Execução real dos 24 test cases | Engenharia + RT |
 | Assinaturas em todos os documentos | Coleta de assinaturas (digital ou ICP-Brasil) | Todos |
 | DPA com Anthropic | Negociação contratual | Gerência Executiva + DPO |
+| Relatório de usabilidade (IEC 62366-1) | **Execução** de avaliação de fatores humanos com usuários | Engenharia + RT |
+| Testes de compatibilidade e interoperabilidade | **Execução** da matriz de integrações | Engenharia |
+| Lista de Requisitos Essenciais (RDC 546/2021) | Mapeamento item a item | RT + assessoria |
+| AFE da ANVISA | Petição própria — **não** coberta pelas dispensas municipais | Gerência Executiva |
 
 ## 5. Controle de Revisões do RMP
 

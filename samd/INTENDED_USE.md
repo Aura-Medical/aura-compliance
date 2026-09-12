@@ -2,9 +2,9 @@
 
 **ID do Documento:** IU-001
 
-**Revisão:** 4.0 (v1.0.0 Stable Release)
+**Revisão:** 5.0 — indicação de uso resolvida (CDSS/SaMD Classe II)
 
-**Data:** 2026-04-10
+**Data:** 2026-09-12 (rev. 4.0 em 2026-04-10)
 
 **Produto:** Aura Medical iOS Application
 
@@ -39,7 +39,34 @@ O software analisa cinco domínios fisiológicos distintos através de uma lógi
 
 ## 2. Indicação de Uso
 
-A Aura Medical destina-se a fornecer informações de bem-estar geral e automonitorização para adultos saudáveis. O software agrega dados laboratoriais, biométricos e de wearables para identificar desvios em relação a limiares clínicos ideais estabelecidos pela doutrina **Medicine 3.0** (Attia/Huberman).
+> **Revisão 5.0 — 2026-09-12.** Esta seção foi REESCRITA. A redação anterior dizia
+> *"informações de bem-estar geral"* ao mesmo tempo em que o §1 deste documento
+> descrevia o produto como CDSS. As duas afirmações se anulam sob a RDC 657/2022:
+> o **Art. 1º, §2º, I** exclui do escopo os "softwares para bem-estar", e o
+> **Art. 2º, IX** os define como os que **não** se destinam a prevenção,
+> diagnóstico, tratamento, reabilitação ou anticoncepção. Ou o produto é
+> bem-estar e a RDC não se aplica, ou é dispositivo e a Classe II vale.
+> O RT decidiu pela segunda (2026-09-12). A escolha e as duas redações avaliadas
+> estão em `INTENDED_USE_DECISAO.md`.
+
+A Aura Medical é um **software como dispositivo médico (SaMD)** destinado a apoiar a
+**prevenção** e o automonitoramento de fatores de risco cardiometabólico, do sono, da
+atividade física e da saúde mental em **adultos**. O software agrega dados
+laboratoriais, biométricos, de dispositivos vestíveis e de instrumentos clínicos
+validados, e os classifica contra limiares estabelecidos na literatura primária,
+sinalizando desvios que merecem atenção.
+
+A saída do software é **informação para apoiar decisão**, dirigida ao usuário e ao
+profissional de saúde que o acompanha. O software **não estabelece diagnóstico, não
+prescreve e não substitui avaliação médica** — toda conduta permanece com o
+profissional habilitado (CFM 2.454/2026, Art. 1º e Art. 9º). A associação clínica de
+cada limiar é referenciada à **literatura primária** e assinada pelo Responsável
+Técnico antes de entrar em produção (ver `CONFIG_MGMT.md` §4.2).
+
+**O que esta indicação NÃO autoriza**, e está escrito para não ser lido a mais:
+o software não se destina a **tratamento**, **reabilitação** ou **anticoncepção**;
+não é destinado a uso pediátrico; não é destinado a situação de emergência; e não
+substitui monitorização clínica de paciente instável.
 
 ### 2.1 Funções Clínicas do Software
 
