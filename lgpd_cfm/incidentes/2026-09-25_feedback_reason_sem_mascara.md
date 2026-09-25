@@ -46,6 +46,10 @@
   e-mail e log sem nenhum trecho do texto, e posse (mensagem de outra conta → 403, inexistente → 404, sem escrita, sem score,
   sem e-mail).
 - **Pendente:** apagar da caixa de compliance os e-mails de maio–junho, se existirem e tiverem dado de saúde (Líder de Incidente).
+- **Pendente (achado da revisão, 25/09):** a exclusão no Langfuse foi feita e conferida só pela API. O Langfuse é
+  auto-hospedado: conferir se o armazenamento de eventos (blob/S3) e os backups dele guardam cópia dos 5 comentários, e qual é a
+  retenção. Se guardarem, apagar ou deixar expirar, e registrar aqui.
+- **Feito 25/09 ~17:35 UTC:** o conserto está no ar (`aura-backend` `566e115`, deploy da Render).
 
 ## Fase 5 — Pós-incidente
 
