@@ -33,7 +33,10 @@
 - Avaliar se há "risco ou dano relevante" (LGPD Art. 48) para os 2 titulares. Insumos: o conteúdo dos 6 textos (ler no banco);
   se os e-mails saíram (painel do Resend, remetente `noreply@auramedical.com.br`, assunto `[Aura+] Feedback negativo`,
   maio–junho/2026); o Langfuse é da própria empresa.
-- **Pendente.** Registrar aqui a decisão (notificar ou não, e por quê) com data.
+- **Decisão (RT, 25/09/2026 ~21:15 UTC): NÃO notificar.** Os 2 titulares são o próprio RT e a outra pessoa que testa
+  a plataforma, os dois cientes; o ambiente é de desenvolvimento, sem usuários externos. Nas palavras do RT: "estamos em dev mode e tudo que hoje possivelmente possa ser considerado vazado nao se preocupe, pois faremos um wipe no futuro antes do lancamento, todo mundo que esta na plataforma testando esta OK (eu e minha noiva apenas)".
+  Os pendentes da Fase 4 (os e-mails da caixa de compliance; o armazenamento e os backups do Langfuse) entram no wipe
+  pré-lançamento, que é item bloqueante do lançamento no ROADMAP (DIV-658).
 
 ## Fase 4 — Erradicação e recuperação
 

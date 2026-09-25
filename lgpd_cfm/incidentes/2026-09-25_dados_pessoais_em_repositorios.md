@@ -30,7 +30,16 @@
   engenharia); um teste no portão de PHI do deploy que FALHA se um CPF real voltar a entrar no repositório.
 - Pacotes locais de revisão e cópias de trabalho que guardavam os números foram apagados.
 
-## Decisões pendentes (RT / Encarregado)
+## Decisões do RT (25/09/2026 ~21:15 UTC)
+
+Nas palavras do RT: "estamos em dev mode e tudo que hoje possivelmente possa ser considerado vazado nao se preocupe, pois faremos um wipe no futuro antes do lancamento, todo mundo que esta na plataforma testando esta OK (eu e minha noiva apenas)". Com isso:
+- **Histórico do git:** mantido (repositórios privados; conserto para a frente feito; guarda contra CPF real ativa). O
+  wipe pré-lançamento (DIV-658) reavalia se algum repositório deixar de ser privado.
+- **Consentimento:** as pessoas na plataforma são o RT e a outra pessoa que testa, e estão de acordo (RT). Os cadastros
+  de teste feitos com dados de familiares saem no wipe pré-lançamento (DIV-658).
+- **O nome da testadora:** a pseudonimização fica para o wipe pré-lançamento (DIV-658), por decisão do RT.
+
+## Decisões pendentes (RT / Encarregado) — o texto original, já respondido acima
 
 1. **Histórico do git:** reescrever os 3 repositórios para purgar os dados (quebra os identificadores de commit citados no
    ROADMAP e nas ADRs como trilha de auditoria, as tags do Xcode Cloud e os clones) ou mantê-los (repositórios privados,
