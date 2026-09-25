@@ -3,7 +3,7 @@
 **Document ID:** AURA-POL-BAA-001
 **Version:** 1.0
 **Effective Date:** 2026-03-27
-**Last Reviewed:** 2026-03-27
+**Last Reviewed:** 2026-09-25 (API Brasil acrescentada — sem DPA)
 **Next Review:** 2026-09-27
 **Owner:** Legal / Compliance, AURAMEDICAL SERVICOS MEDICOS LTDA
 **Classification:** Internal
@@ -61,6 +61,7 @@ A **Data Processing Agreement (DPA)** serves the equivalent function of a BAA un
 | **Apple** | HealthKit, Sign-In with Apple | **Yes** — Health data accessed via HealthKit APIs | Heart rate, steps, sleep, HRV, respiratory rate, blood oxygen | Apple Developer Program License Agreement includes health data provisions | Apple's standard privacy terms apply | **Verify** that DPLA Section 3.3.28 (HealthKit) covers BAA requirements | **MEDIUM** | 1 month |
 | **Apple** | App Store (distribution) | **No** — App binary only | App metadata, crash logs (no PHI) | Standard Apple Developer Agreement | Standard terms | None — no PHI in scope | — | — |
 | **OpenAI / Anthropic** | Future AI features (chat, insights) | **TBD** — Will depend on implementation | Potentially: user queries, health context | **TBD** — Must assess before integration | **TBD** | **Assess BAA/DPA requirements before any integration** | LOW | Before integration |
+| **API Brasil** | Consulta cadastral de CPF (Receita Federal) — `POST /api/profile/validate-cpf` do backend | **Yes** — CPF enviado; a resposta traz nome, data de nascimento, sexo e situação cadastral | CPF (identificador nacional), nome, data de nascimento, sexo | N/A — fornecedor brasileiro, fora do escopo HIPAA | **No DPA** — só a política de privacidade pública (https://www.apibrasil.io/politica-de-privacidade); confirmado pelo RT em 2026-09-25 ("nenhum contrato específico") | Obter DPA/termos de operador (LGPD Art. 39) ou registrar avaliação formal de suficiência dos termos públicos; minimização já em vigor: só o CPF viaja (corpo do POST, TLS), o backend loga só custo/saldo, o resultado fica no perfil da pessoa | High | 2026-10-18 |
 
 ### 3.2 Status Definitions
 
@@ -166,6 +167,19 @@ A **Data Processing Agreement (DPA)** serves the equivalent function of a BAA un
 
 ---
 
+### 4.5 API Brasil (consulta cadastral de CPF)
+
+| Attribute | Detail |
+|-----------|--------|
+| Service | Consulta cadastral de CPF na Receita Federal (produto "cpf-search"), chamada pelo backend em `src/profile/validate-cpf.ts` |
+| Data flow | O app envia o CPF ao backend (corpo do POST, TLS); o backend consulta a API Brasil com token de servidor; a resposta (nome, nascimento, sexo, situação) é gravada no perfil da pessoa (`user_profiles`) e o consentimento `data_validation` em `user_consents` |
+| PHI/PII categories | CPF, nome completo, data de nascimento, sexo |
+| Retention (Aura) | Só no perfil da pessoa; sai com "Excluir conta". O backend NÃO loga o CPF (só custo e saldo da consulta) |
+| Retention (vendor) | Desconhecida — não há DPA; a política pública não descreve retenção por cliente |
+| DPA availability | **Nenhum contrato específico** (RT, 2026-09-25). Instrumento existente: política de privacidade pública https://www.apibrasil.io/politica-de-privacidade |
+| Required action | (1) Solicitar DPA/termos de operador ou, se o fornecedor não oferecer, registrar aqui a avaliação de suficiência dos termos públicos assinada pelo Controlador; (2) manter a minimização (só o CPF vai; nada de nome/nascimento enviado); (3) o disclosure do cadastro no app nomeia a finalidade e o operador (Task 21-A) |
+
+
 ## 5. Review Schedule
 
 ### 5.1 Regular Reviews
@@ -193,6 +207,7 @@ A **Data Processing Agreement (DPA)** serves the equivalent function of a BAA un
 |--------|---------------|---------------------------|--------------|
 | Supabase | **Critical** — All PHI stored here | High — direct database access | **Critical** |
 | Render | **High** — PHI transits through | Medium — transit only, TLS encrypted | **High** |
+| API Brasil | **High** — CPF + dados cadastrais de todo cadastro validado passam por lá | Medium — só na validação; sem retenção conhecida do lado da Aura; política pública, sem DPA | **High** |
 | Apple (HealthKit) | **Medium** — Data read from HealthKit | Low — data flows from Apple to app, not reverse | **Medium** |
 | Google (OAuth) | **Low** — No PHI involved | Very Low — email only | **Low** |
 | Future AI | **TBD** — Depends on implementation | TBD | **TBD** |
