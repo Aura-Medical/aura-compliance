@@ -153,7 +153,7 @@ Conforme o Anexo III, item VIII, a Aura Medical garante acesso a relatórios de 
 |---|---|---|
 | Conselho Regional de Medicina (CRM) | Relatórios de auditoria, métricas de desempenho, registros de governança. | RT (Dr. Alexandre) |
 | Conselho Federal de Medicina (CFM) | Idem CRM + documentação de classificação de risco. | RT (Dr. Alexandre) |
-| Autoridade Nacional de Proteção de Dados (ANPD) | Registros de consentimento, logs de auditoria (anonimizados), relatório de incidentes. | DPO (Frederico) |
+| Autoridade Nacional de Proteção de Dados (ANPD) | Registros de consentimento, logs de auditoria (anonimizados), relatório de incidentes. | DPO (Frederico Ribeiro Teixeira, compliance externo) |
 | Agência Nacional de Vigilância Sanitária (Anvisa) | Dossiê SaMD completo, relatórios de verificação e validação. | RT (Dr. Alexandre) |
 | Ministério Público | Conforme requisição judicial ou administrativa. | Gerência Executiva (Arthur) |
 
@@ -175,4 +175,4 @@ O procedimento de resposta a solicitações de órgãos regulatórios é coorden
 |---|---|---|---|
 | Responsável Técnico (RT) | Dr. Alexandre Teixeira de Almeida | | |
 | Gerência Executiva | Arthur Teixeira de Almeida | | |
-| Encarregado (DPO) | Frederico | | |
+| Encarregado (DPO) | Frederico Ribeiro Teixeira (compliance externo) | | |

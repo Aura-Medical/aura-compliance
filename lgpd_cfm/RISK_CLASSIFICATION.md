@@ -126,4 +126,4 @@ Conforme Art. 13, o nível de risco deve ser **informado ao usuário**. Esta inf
 |---|---|---|---|
 | Responsável Técnico (RT) | Dr. Alexandre Teixeira de Almeida | | |
 | Gerência Executiva | Arthur Teixeira de Almeida | | |
-| Encarregado (DPO) | Frederico | | |
+| Encarregado (DPO) | Frederico Ribeiro Teixeira (compliance externo) | | |

@@ -31,7 +31,7 @@ Este documento institui a Comissão de Inteligência Artificial e Telemedicina d
 |---|---|---|---|
 | **Coordenador Médico** | Dr. Alexandre Teixeira de Almeida | Responsável Técnico (RT) | Coordenação geral, decisões sobre segurança clínica e ética. |
 | **Diretor Técnico** | Arthur Teixeira de Almeida | Gerência Executiva | Supervisão administrativa e subordinação hierárquica da comissão. |
-| **Encarregado de Dados (DPO)** | Frederico | DPO | Conformidade com LGPD, proteção de dados, interface com ANPD. |
+| **Encarregado de Dados (DPO)** | Frederico Ribeiro Teixeira (compliance externo) | DPO | Conformidade com LGPD, proteção de dados, interface com ANPD. |
 | **Representante de Engenharia** | A definir | Líder Técnico | Implementação técnica, monitoramento e auditoria de sistemas. |
 
 ### 3.1 Subordinação Hierárquica
@@ -139,4 +139,4 @@ Todas as deliberações da Comissão são registradas em ata contendo:
 |---|---|---|---|
 | Responsável Técnico (RT) | Dr. Alexandre Teixeira de Almeida | | |
 | Gerência Executiva | Arthur Teixeira de Almeida | | |
-| Encarregado (DPO) | Frederico | | |
+| Encarregado (DPO) | Frederico Ribeiro Teixeira (compliance externo) | | |

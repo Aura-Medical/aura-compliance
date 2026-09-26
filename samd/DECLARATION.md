@@ -45,7 +45,7 @@ A **AURAMEDICAL SERVICOS MEDICOS LTDA** (CNPJ 63.556.151/0001-40), na qualidade 
 | **CNPJ** | 63.556.151/0001-40 |
 | **Endereço** | R. Pais Leme, 215, Conj. 1713 — Pinheiros, São Paulo/SP, CEP 05.424-150 |
 | **Responsável Técnico** | Dr. Alexandre Teixeira de Almeida |
-| **Encarregado de Dados (DPO)** | Frederico |
+| **Encarregado de Dados (DPO)** | Frederico Ribeiro Teixeira (compliance externo) |
 | **Gerência Executiva** | Arthur Teixeira de Almeida |
 
 ## Normas e Regulamentos Aplicáveis
@@ -100,4 +100,4 @@ Declaro que:
 |---|---|---|---|
 | Responsável Técnico (RT) | Dr. Alexandre Teixeira de Almeida | | |
 | Gerência Executiva / Representante Legal | Arthur Teixeira de Almeida | | |
-| Encarregado de Dados (DPO) | Frederico | | |
+| Encarregado de Dados (DPO) | Frederico Ribeiro Teixeira (compliance externo) | | |

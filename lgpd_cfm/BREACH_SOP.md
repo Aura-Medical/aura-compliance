@@ -34,14 +34,14 @@ Este SOP aplica-se a qualquer evento que resulte em:
 | **PHI** | Dados Pessoais Sensíveis de Saúde conforme LGPD Art. 5, II — dados relativos à saúde. |
 | **ANPD** | Autoridade Nacional de Proteção de Dados — órgão regulador da LGPD. |
 | **Controlador** | AURAMEDICAL SERVICOS MEDICOS LTDA (CNPJ 63.556.151/0001-40) — pessoa jurídica responsável pelas decisões de tratamento de dados. |
-| **Encarregado (DPO)** | Frederico — responsável por comunicações com a ANPD e titulares. |
+| **Encarregado (DPO)** | Frederico Ribeiro Teixeira (compliance externo) — responsável por comunicações com a ANPD e titulares. |
 
 ## 4. Equipe de Resposta a Incidentes
 
 | **Função** | **Responsável** | **Responsabilidade** |
 |---|---|---|
 | Líder de Incidente | Arthur Teixeira de Almeida | Coordenação geral, decisões de contenção e comunicação executiva. |
-| Encarregado (DPO) | Frederico | Notificação à ANPD e aos titulares; documentação regulatória. |
+| Encarregado (DPO) | Frederico Ribeiro Teixeira (compliance externo) | Notificação à ANPD e aos titulares; documentação regulatória. |
 | Responsável Técnico (RT) | Dr. Alexandre Teixeira de Almeida | Avaliação do impacto clínico; determinação se a falha afeta a segurança do paciente. |
 | Engenharia | Equipe de Desenvolvimento | Contenção técnica, análise forense e correção. |
 
@@ -181,4 +181,4 @@ A comunicação formal deve conter:
 |---|---|---|---|
 | Responsável Técnico (RT) | Dr. Alexandre Teixeira de Almeida | | |
 | Gerência Executiva | Arthur Teixeira de Almeida | | |
-| Encarregado (DPO) | Frederico | | |
+| Encarregado (DPO) | Frederico Ribeiro Teixeira (compliance externo) | | |

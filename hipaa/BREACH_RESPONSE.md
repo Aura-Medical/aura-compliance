@@ -336,7 +336,7 @@ Para exercer qualquer desses direitos ou para mais informacoes, entre em
 contato conosco:
 
 Email: privacidade@auramedical.com
-Encarregado de Dados (DPO): [NOME DO DPO]
+Encarregado de Dados (DPO): Frederico Ribeiro Teixeira (compliance externo) — dpo@aura.med
 
 Pedimos sinceras desculpas por este incidente e estamos comprometidos em
 proteger seus dados.
@@ -498,7 +498,7 @@ Based on lessons learned:
 | **CTO** | Technical decisions, containment authorization | TBD |
 | **Engineering Lead** | Technical investigation, patch development | TBD |
 | **Legal Counsel** | Regulatory compliance, notification review | TBD |
-| **DPO (Encarregado)** | Data subject rights, LGPD compliance | TBD |
+| **DPO (Encarregado)** | Data subject rights, LGPD compliance | Frederico Ribeiro Teixeira (compliance externo) |
 
 ## 12. Communication Channels
 

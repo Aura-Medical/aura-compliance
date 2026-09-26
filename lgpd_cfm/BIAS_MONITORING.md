@@ -126,4 +126,4 @@ Os relatórios são armazenados como evidência de compliance e disponibilizados
 |---|---|---|---|
 | Responsável Técnico (RT) | Dr. Alexandre Teixeira de Almeida | | |
 | Gerência Executiva | Arthur Teixeira de Almeida | | |
-| Encarregado (DPO) | Frederico | | |
+| Encarregado (DPO) | Frederico Ribeiro Teixeira (compliance externo) | | |
