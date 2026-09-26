@@ -86,7 +86,7 @@ A **Data Processing Agreement (DPA)** serves the equivalent function of a BAA un
 |-----------|--------|
 | Service | PostgreSQL database, Auth (GoTrue), Storage, Edge Functions |
 | Plan | Pro ($25/month) |
-| Data residency | AWS us-east-1 (Virginia) |
+| Data residency | AWS sa-east-1 (São Paulo) — medido pelo MCP do Supabase em 2026-09-26 (projetos `dhteseqmrgvhnuowgblp` e o do site); o valor anterior (us-east-1) estava errado |
 | PHI categories | All — health scores, lab results, biometric summaries, user profiles, audit logs |
 | Encryption at rest | AES-256 (AWS default) |
 | Encryption in transit | TLS 1.2+ (certificate pinning enforced by iOS client) |
