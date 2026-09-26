@@ -123,15 +123,19 @@ O texto exibido ao utilizador na tela de consentimento DEVE conter:
 
 1. **Identificação do Controlador e Responsável Clínica:**
    - *Controlador LGPD (operador do app e contrato Apple)*: Auramedical Tecnologia Ltda.
-     > ⚠️ **A ATUALIZAR (2026-09-12).** O controlador passa a ser a AURAMEDICAL
-     > SERVICOS MEDICOS LTDA (CNPJ 63.556.151/0001-40). Esta linha **não foi
-     > trocada ainda de propósito**: ela é texto de CONSENTIMENTO já exibido a
-     > 15 titulares, e trocar o controlador num consentimento vigente não é
-     > edição — é mudança de base legal, que pede versão nova do texto e nova
-     > coleta. Entra junto com a v1.2 (que já precisa sair por outros dois erros
-     > de fato: nomeia "Claude Haiku 4.5" quando o chat roda Sonnet 4.6, e
-     > afirma "sem armazenamento do texto bruto" quando `aura_chat_messages`
-     > guarda verbatim).
+     > ✅ **DECIDIDO PELO RT (2026-09-26), supera o aviso de 2026-09-12 nesta linha.**
+     > *"A empresa de tecnologia é dona do app, que fará a intermediação das consultas
+     > médicas que são responsabilidade da empresa de serviços médicos."* Logo: a
+     > **controladora dos dados do app** continua a Auramedical Tecnologia da Informação
+     > Ltda. (CNPJ 58.107.486/0001-41), dona do app e da conta Apple; a de serviços médicos
+     > responde pelas consultas (o prontuário e o dado da consulta, quando a teleconsulta
+     > existir), com a de tecnologia intermediando. Não há troca de controladora a avisar.
+     > A **v1.2** do texto continua necessária pelos dois erros de fato (nomeia "Claude
+     > Haiku 4.5" quando o chat roda outro modelo; afirma "sem armazenamento do texto
+     > bruto" quando `aura_chat_messages` guarda verbatim) e porque o Google também recebe
+     > o conteúdo — ROADMAP DIV-669. **Em aberto para a sessão de compliance com empresa
+     > externa (anunciada pelo RT em 26/09):** o fabricante no dossiê do SaMD, que o commit
+     > `cc68b9d` (12/09) migrou para a empresa de serviços médicos em 13 arquivos.
    - *Responsável pelos atos médicos e pela classificação CREMESP Telessaúde*: AURAMEDICAL SERVIÇOS MÉDICOS LTDA (CNPJ 63.556.151/0001-40; inscrição CREMESP 1041601; Responsável Técnico: Dr. Alexandre Teixeira de Almeida, CRM-SP 213039).
 2. **Finalidade Específica:** "Processar seus dados de saúde através de Inteligência Artificial conversacional para fornecer insights personalizados de longevidade e bem-estar."
 3. **Identificação do Subprocessador:** "Seus dados serão processados pela Anthropic, Inc. (EUA) através do modelo Claude Haiku 4.5."
